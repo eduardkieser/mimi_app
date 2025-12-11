@@ -97,6 +97,7 @@
       return {
         tasks: [],
         theme: localStorage.getItem('mimi-theme') || 'dark',
+        audioCtx: null,
         
         get todayFormatted() {
           return new Date().toLocaleDateString('en-US', { 
@@ -183,37 +184,52 @@
           }
         },
         
+        getAudioContext() {
+          // Reuse audio context to prevent browser limitations
+          if (!this.audioCtx || this.audioCtx.state === 'closed') {
+            this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          // Resume if suspended (happens after browser tab is inactive)
+          if (this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume();
+          }
+          return this.audioCtx;
+        },
+        
         playDing() {
-          // Bright, cheerful "ding" using Web Audio API
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          
-          // Main tone - brighter C7
-          const oscillator = audioCtx.createOscillator();
-          const gainNode = audioCtx.createGain();
-          
-          oscillator.connect(gainNode);
-          gainNode.connect(audioCtx.destination);
-          
-          oscillator.frequency.value = 2093; // C7 - bright and clear
-          oscillator.type = 'sine';
-          
-          gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-          
-          oscillator.start(audioCtx.currentTime);
-          oscillator.stop(audioCtx.currentTime + 0.3);
-          
-          // Harmonic for sparkle - G7
-          const osc2 = audioCtx.createOscillator();
-          const gain2 = audioCtx.createGain();
-          osc2.connect(gain2);
-          gain2.connect(audioCtx.destination);
-          osc2.frequency.value = 3136; // G7
-          osc2.type = 'sine';
-          gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
-          gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-          osc2.start(audioCtx.currentTime);
-          osc2.stop(audioCtx.currentTime + 0.2);
+          try {
+            const audioCtx = this.getAudioContext();
+            
+            // Main tone - brighter C7
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.frequency.value = 2093; // C7 - bright and clear
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.3);
+            
+            // Harmonic for sparkle - G7
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.frequency.value = 3136; // G7
+            osc2.type = 'sine';
+            gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc2.start(audioCtx.currentTime);
+            osc2.stop(audioCtx.currentTime + 0.2);
+          } catch (e) {
+            console.warn('Audio playback failed:', e);
+          }
         }
       };
     }

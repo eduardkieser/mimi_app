@@ -31,7 +31,7 @@
 
     <!-- Task list -->
     <div class="task-list" id="task-list">
-      <template x-for="task in tasks" :key="task.id">
+        <template x-for="task in tasks" :key="task.id">
         <div 
           class="task-card"
           :class="{
@@ -40,6 +40,7 @@
             'completed': task.status === 'completed',
             'just-completed': task.justCompleted
           }"
+          :style="`min-height: ${Math.max(60, task.expected_minutes * 1.5)}px`"
           @click="toggleTask(task)"
         >
           <div class="task-content">
@@ -50,7 +51,7 @@
             </div>
             <div class="task-info">
               <div class="task-title" x-text="task.title"></div>
-              <div class="task-description" x-text="task.description || ''"></div>
+              <div class="task-meta" x-text="task.expected_minutes + ' min'"></div>
             </div>
             <span 
               class="task-badge"
@@ -73,6 +74,12 @@
         <h3>No tasks for today</h3>
         <p>Enjoy your day off! 🎉</p>
       </div>
+    </div>
+
+    <!-- Total time -->
+    <div class="total-time" x-show="tasks.length > 0">
+      <span x-text="`Total: ${totalMinutes} min (~${Math.round(totalMinutes/60*10)/10} hrs)`"></span>
+      <span x-show="completedMinutes > 0" x-text="` • Done: ${completedMinutes} min`" style="color: var(--color-completed);"></span>
     </div>
 
     <!-- All done celebration -->
@@ -104,6 +111,15 @@
           return this.totalCount > 0 && this.completedCount === this.totalCount;
         },
         
+        get totalMinutes() {
+          return this.tasks.reduce((sum, t) => sum + (t.expected_minutes || 0), 0);
+        },
+        
+        get completedMinutes() {
+          return this.tasks.filter(t => t.status === 'completed')
+            .reduce((sum, t) => sum + (t.expected_minutes || 0), 0);
+        },
+        
         get todayFormatted() {
           return new Date().toLocaleDateString('en-US', { 
             weekday: 'long', 
@@ -121,14 +137,8 @@
           try {
             const response = await fetch('/api/tasks/today');
             this.tasks = await response.json();
-            // Sort: pending first (by priority), then completed
-            this.tasks.sort((a, b) => {
-              if (a.status === 'completed' && b.status !== 'completed') return 1;
-              if (a.status !== 'completed' && b.status === 'completed') return -1;
-              if (a.priority === 'required' && b.priority === 'optional') return -1;
-              if (a.priority === 'optional' && b.priority === 'required') return 1;
-              return a.order - b.order;
-            });
+            // Keep Ilsa's order - only sort by order field
+            this.tasks.sort((a, b) => a.order - b.order);
           } catch (err) {
             console.error('Failed to load tasks:', err);
           }
@@ -157,17 +167,7 @@
                   this.tasks[idx].justCompleted = false;
                 }, 500);
               }
-              
-              // Re-sort after short delay for visual effect
-              setTimeout(() => {
-                this.tasks.sort((a, b) => {
-                  if (a.status === 'completed' && b.status !== 'completed') return 1;
-                  if (a.status !== 'completed' && b.status === 'completed') return -1;
-                  if (a.priority === 'required' && b.priority === 'optional') return -1;
-                  if (a.priority === 'optional' && b.priority === 'required') return 1;
-                  return a.order - b.order;
-                });
-              }, 300);
+              // Don't re-sort - keep Ilsa's order
             }
           } catch (err) {
             console.error('Failed to toggle task:', err);

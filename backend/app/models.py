@@ -28,9 +28,11 @@ class Weekday(str, Enum):
 class TaskTemplateBase(SQLModel):
     title: str = Field(index=True)
     description: Optional[str] = None
-    priority: TaskPriority = TaskPriority.REQUIRED
+    priority: TaskPriority = TaskPriority.OPTIONAL  # Optional by default
+    is_recurring: bool = Field(default=True)  # Repeat every week
     default_weekday: Weekday = Weekday.TUESDAY
     order: int = Field(default=0)  # Display order
+    expected_minutes: int = Field(default=30)  # Time estimate in minutes
     is_active: bool = Field(default=True)
 
 
@@ -57,8 +59,10 @@ class TaskTemplateUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
     priority: Optional[TaskPriority] = None
+    is_recurring: Optional[bool] = None
     default_weekday: Optional[Weekday] = None
     order: Optional[int] = None
+    expected_minutes: Optional[int] = None
     is_active: Optional[bool] = None
 
 
@@ -68,6 +72,7 @@ class TaskBase(SQLModel):
     description: Optional[str] = None
     priority: TaskPriority
     order: int = Field(default=0)
+    expected_minutes: int = Field(default=30)
     scheduled_date: date = Field(index=True)
     status: TaskStatus = Field(default=TaskStatus.PENDING)
 
@@ -95,4 +100,17 @@ class TaskUpdate(SQLModel):
     description: Optional[str] = None
     priority: Optional[TaskPriority] = None
     order: Optional[int] = None
+    expected_minutes: Optional[int] = None
+
+
+class TaskCreate(SQLModel):
+    """For creating ad-hoc tasks directly (not from template)."""
+    title: str
+    description: Optional[str] = None
+    priority: TaskPriority = TaskPriority.OPTIONAL
+    order: int = 0
+    expected_minutes: int = 30
+    scheduled_date: date
+
+
 

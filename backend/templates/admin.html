@@ -8,148 +8,556 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
   <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
+  <style>
+    /* Admin-specific styles */
+    .admin-container {
+      max-width: 100%;
+      padding: 16px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .admin-header {
+      text-align: center;
+      padding: 8px 0 16px;
+      flex-shrink: 0;
+    }
+
+    .admin-header h1 {
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, var(--accent), #bb9af7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Day slider */
+    .day-slider {
+      display: flex;
+      gap: 8px;
+      padding: 8px 0 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .day-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .day-dot:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .day-dot.active {
+      background: var(--accent);
+      color: var(--bg-primary);
+      border-color: var(--accent);
+    }
+
+    .day-dot.today {
+      border-color: var(--color-completed);
+    }
+
+    /* Day panels container */
+    .day-panels-wrapper {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .day-panels {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      padding: 0 calc(50% - 180px);
+      height: 100%;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .day-panels::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Day panel */
+    .day-panel {
+      flex: 0 0 360px;
+      scroll-snap-align: center;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 180px);
+    }
+
+    .day-panel-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--bg-primary);
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .day-panel-header h2 {
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .day-panel-header .date-str {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .day-panel-header .total-time {
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin-top: 4px;
+    }
+
+    .day-panel-tasks {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    /* Task card in admin */
+    .admin-task-card {
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      margin-bottom: 4px;
+      position: relative;
+      border-left: 3px solid var(--text-muted);
+      transition: all 0.2s ease;
+    }
+
+    .admin-task-card.required {
+      border-left-color: var(--color-required);
+    }
+
+    .admin-task-card.optional {
+      border-left-color: var(--color-optional);
+    }
+
+    .admin-task-card:hover {
+      background: var(--bg-hover);
+    }
+
+    .admin-task-content {
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .admin-task-title {
+      flex: 1;
+      font-weight: 500;
+    }
+
+    .admin-task-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .admin-task-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .admin-task-card:hover .admin-task-actions {
+      opacity: 1;
+    }
+
+    .admin-task-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: var(--bg-card);
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .admin-task-btn:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+
+    .admin-task-btn.delete:hover {
+      background: var(--color-required);
+    }
+
+    .admin-task-btn.up:hover,
+    .admin-task-btn.down:hover {
+      background: var(--color-optional);
+    }
+
+    /* Insert button between tasks */
+    .insert-btn {
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .day-panel-tasks:hover .insert-btn {
+      opacity: 1;
+    }
+
+    .insert-btn button {
+      background: transparent;
+      border: 1px dashed var(--text-muted);
+      border-radius: 12px;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      padding: 2px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .insert-btn button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(122, 162, 247, 0.1);
+    }
+
+    /* Empty day state */
+    .empty-day {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-day button {
+      margin-top: 12px;
+    }
+
+    /* Modal styles */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .modal h2 {
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+    }
+
+    .form-row {
+      margin-bottom: 16px;
+    }
+
+    .form-row input[type="text"],
+    .form-row textarea {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--text-muted);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    .form-row input:focus,
+    .form-row textarea:focus,
+    .form-row select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-row textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    /* Priority dropdown with colors */
+    .priority-select {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--text-muted);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .priority-select.optional {
+      border-color: var(--color-optional);
+      color: var(--color-optional);
+    }
+
+    .priority-select.required {
+      border-color: var(--color-required);
+      color: var(--color-required);
+    }
+
+    /* Time stepper */
+    .time-stepper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .time-stepper button {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: all 0.2s ease;
+    }
+
+    .time-stepper button:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+
+    .time-stepper .time-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+  </style>
 </head>
 <body x-data="adminApp()">
-  <div class="container">
+  <div class="admin-container">
     <header class="admin-header">
       <h1>Ilsa.Admin</h1>
-      <button class="btn btn-primary" @click="openCreateModal()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add Task
-      </button>
     </header>
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <div class="tab" :class="{ active: tab === 'templates' }" @click="tab = 'templates'">
-        Task Templates
-      </div>
-      <div class="tab" :class="{ active: tab === 'today' }" @click="tab = 'today'; loadTodaysTasks()">
-        Today's Tasks
-      </div>
+    <!-- Day selector dots -->
+    <div class="day-slider">
+      <template x-for="(day, idx) in days" :key="day.dateStr">
+        <div 
+          class="day-dot"
+          :class="{ active: selectedDayIdx === idx, today: idx === 0 }"
+          @click="scrollToDay(idx)"
+          x-text="day.shortName"
+        ></div>
+      </template>
     </div>
 
-    <!-- Templates Tab -->
-    <div x-show="tab === 'templates'">
-      <div class="template-list">
-        <template x-for="template in templates" :key="template.id">
-          <div class="template-card">
-            <div class="template-info">
-              <div class="template-title" x-text="template.title"></div>
-              <div class="template-meta">
-                <span :class="template.priority === 'required' ? 'task-badge required' : 'task-badge optional'" 
-                      x-text="template.priority"></span>
-                <span x-text="capitalizeFirst(template.default_weekday)"></span>
-                <span x-text="`Order: ${template.order}`"></span>
-                <span x-show="!template.is_active" style="color: var(--color-required);">Inactive</span>
-              </div>
+    <!-- Day panels -->
+    <div class="day-panels-wrapper">
+      <div class="day-panels" id="day-panels" @scroll="onScroll">
+        <template x-for="(day, dayIdx) in days" :key="day.dateStr">
+          <div class="day-panel" :id="'panel-' + dayIdx">
+            <div class="day-panel-header">
+              <h2 x-text="day.dayName"></h2>
+              <div class="date-str" x-text="day.dateFormatted"></div>
+              <div class="total-time" x-text="getDayTotalTime(day.dateStr)"></div>
             </div>
-            <div class="template-actions">
-              <button class="btn btn-secondary btn-sm" @click="openEditModal(template)">Edit</button>
-              <button class="btn btn-danger btn-sm" @click="deleteTemplate(template.id)">Delete</button>
-            </div>
-          </div>
-        </template>
-
-        <div class="empty-state" x-show="templates.length === 0">
-          <h3>No task templates yet</h3>
-          <p>Create your first recurring task!</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Today's Tasks Tab -->
-    <div x-show="tab === 'today'">
-      <div style="margin-bottom: 16px;">
-        <button class="btn btn-secondary btn-sm" @click="generateTodaysTasks()">
-          Generate Today's Tasks
-        </button>
-      </div>
-      <div class="task-list">
-        <template x-for="task in todaysTasks" :key="task.id">
-          <div 
-            class="task-card"
-            :class="{
-              'required': task.priority === 'required' && task.status !== 'completed',
-              'optional': task.priority === 'optional' && task.status !== 'completed',
-              'completed': task.status === 'completed'
-            }"
-          >
-            <div class="task-content">
-              <div class="task-checkbox">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
+            <div class="day-panel-tasks">
+              <!-- Insert at top -->
+              <div class="insert-btn">
+                <button @click="openCreateModal(day.dateStr, 0)">
+                  <span>+</span> Add task
+                </button>
               </div>
-              <div class="task-info">
-                <div class="task-title" x-text="task.title"></div>
-                <div class="task-description" x-text="task.status === 'completed' ? 'Completed ✓' : 'Pending'"></div>
+
+              <template x-for="(task, taskIdx) in getTasksForDay(day.dateStr)" :key="task.id">
+                <div>
+                  <div 
+                    class="admin-task-card"
+                    :class="task.priority"
+                    :style="`min-height: ${Math.max(40, task.expected_minutes)}px`"
+                  >
+                    <div class="admin-task-content">
+                      <span class="admin-task-title" x-text="task.title"></span>
+                      <span class="admin-task-time" x-text="task.expected_minutes + 'm'"></span>
+                      <div class="admin-task-actions">
+                        <button class="admin-task-btn up" @click="moveTask(task, -1, day.dateStr)" title="Move up">↑</button>
+                        <button class="admin-task-btn down" @click="moveTask(task, 1, day.dateStr)" title="Move down">↓</button>
+                        <button class="admin-task-btn edit" @click="openEditModal(task)" title="Edit">✎</button>
+                        <button class="admin-task-btn delete" @click="deleteTask(task.id)" title="Delete">×</button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Insert after this task -->
+                  <div class="insert-btn">
+                    <button @click="openCreateModal(day.dateStr, taskIdx + 1)">
+                      <span>+</span> Insert
+                    </button>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Empty state -->
+              <div class="empty-day" x-show="getTasksForDay(day.dateStr).length === 0">
+                <p>No tasks scheduled</p>
+                <button class="btn btn-primary" @click="openCreateModal(day.dateStr, 0)">Add first task</button>
               </div>
             </div>
           </div>
         </template>
-        <div class="empty-state" x-show="todaysTasks.length === 0">
-          <h3>No tasks for today</h3>
-          <p>Click "Generate Today's Tasks" to create them from templates.</p>
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal -->
+  <!-- Create/Edit Modal -->
   <div class="modal-backdrop" x-show="showModal" x-transition @click.self="showModal = false">
     <div class="modal" @click.stop>
-      <h2 x-text="editingTemplate ? 'Edit Task Template' : 'Create Task Template'"></h2>
-      <form @submit.prevent="saveTemplate()">
-        <div class="form-group">
-          <label for="title">Task Title</label>
-          <input type="text" id="title" x-model="form.title" required placeholder="e.g., Clean Kitchen">
+      <h2 x-text="editingTask ? 'Edit Task' : 'New Task'"></h2>
+      <form @submit.prevent="saveTask()">
+        <div class="form-row">
+          <input 
+            type="text" 
+            x-model="form.title" 
+            placeholder="Task title" 
+            required
+            autofocus
+          >
         </div>
-        
-        <div class="form-group">
-          <label for="description">Description (optional)</label>
-          <textarea id="description" x-model="form.description" rows="2" placeholder="Additional details..."></textarea>
-        </div>
-        
-        <div class="form-group">
-          <label for="priority">Priority</label>
-          <select id="priority" x-model="form.priority">
-            <option value="required">Required (Red)</option>
-            <option value="optional">Optional (Yellow)</option>
+
+        <div class="form-row">
+          <select 
+            class="priority-select"
+            :class="form.priority"
+            x-model="form.priority"
+          >
+            <option value="optional">🟡 Optional</option>
+            <option value="required">🔴 Required</option>
           </select>
         </div>
-        
-        <div class="form-group">
-          <label for="weekday">Default Weekday</label>
-          <select id="weekday" x-model="form.default_weekday">
-            <option value="monday">Monday</option>
-            <option value="tuesday">Tuesday</option>
-            <option value="wednesday">Wednesday</option>
-            <option value="thursday">Thursday</option>
-            <option value="friday">Friday</option>
-            <option value="saturday">Saturday</option>
-            <option value="sunday">Sunday</option>
-          </select>
+
+        <div class="form-row">
+          <label class="form-label">Expected time</label>
+          <div class="time-stepper">
+            <button type="button" @click="form.expected_minutes = Math.max(10, form.expected_minutes - 10)">−</button>
+            <span class="time-value" x-text="form.expected_minutes + ' min'"></span>
+            <button type="button" @click="form.expected_minutes += 10">+</button>
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label for="order">Display Order</label>
-          <input type="number" id="order" x-model.number="form.order" min="0" placeholder="0">
-        </div>
-        
-        <div class="form-group" x-show="editingTemplate">
-          <label>
-            <input type="checkbox" x-model="form.is_active" style="width: auto; margin-right: 8px;">
-            Active (will generate tasks)
+
+        <div class="form-row">
+          <label class="checkbox-row">
+            <input type="checkbox" x-model="form.is_recurring">
+            <span>Repeat every week</span>
           </label>
         </div>
-        
+
+        <div class="form-row">
+          <label class="form-label">Description <span class="form-hint">(optional)</span></label>
+          <textarea 
+            x-model="form.description" 
+            placeholder="Additional notes..."
+            rows="2"
+          ></textarea>
+        </div>
+
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" @click="showModal = false">Cancel</button>
-          <button type="submit" class="btn btn-primary" x-text="editingTemplate ? 'Save Changes' : 'Create Task'"></button>
+          <button type="submit" class="btn btn-primary" x-text="editingTask ? 'Save' : 'Create'"></button>
         </div>
       </form>
     </div>
@@ -158,107 +566,227 @@
   <script>
     function adminApp() {
       return {
-        tab: 'templates',
-        templates: [],
-        todaysTasks: [],
+        days: [],
+        tasks: {},  // keyed by date string
+        selectedDayIdx: 0,
         showModal: false,
-        editingTemplate: null,
+        editingTask: null,
+        insertAtDate: null,
+        insertAtOrder: 0,
         form: {
           title: '',
           description: '',
-          priority: 'required',
-          default_weekday: 'tuesday',
-          order: 0,
-          is_active: true
+          priority: 'optional',
+          expected_minutes: 30,
+          is_recurring: true
         },
-        
+
         async init() {
-          await this.loadTemplates();
+          this.buildDays();
+          await this.loadAllTasks();
+          // Start scrolled to today
+          this.$nextTick(() => this.scrollToDay(0));
         },
-        
-        async loadTemplates() {
-          try {
-            const response = await fetch('/api/admin/templates?active_only=false');
-            this.templates = await response.json();
-            this.templates.sort((a, b) => a.order - b.order);
-          } catch (err) {
-            console.error('Failed to load templates:', err);
+
+        buildDays() {
+          const days = [];
+          const today = new Date();
+          const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          const fullDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          
+          for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            days.push({
+              date: d,
+              dateStr: d.toISOString().split('T')[0],
+              shortName: dayNames[d.getDay()],
+              dayName: i === 0 ? 'Today' : (i === 1 ? 'Tomorrow' : fullDayNames[d.getDay()]),
+              dateFormatted: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            });
+          }
+          this.days = days;
+        },
+
+        async loadAllTasks() {
+          for (const day of this.days) {
+            try {
+              const response = await fetch(`/api/tasks/date/${day.dateStr}`);
+              const tasks = await response.json();
+              tasks.sort((a, b) => a.order - b.order);
+              this.tasks[day.dateStr] = tasks;
+            } catch (err) {
+              console.error('Failed to load tasks for', day.dateStr, err);
+              this.tasks[day.dateStr] = [];
+            }
           }
         },
-        
-        async loadTodaysTasks() {
-          try {
-            const response = await fetch('/api/tasks/today');
-            this.todaysTasks = await response.json();
-          } catch (err) {
-            console.error('Failed to load tasks:', err);
+
+        getTasksForDay(dateStr) {
+          return this.tasks[dateStr] || [];
+        },
+
+        getDayTotalTime(dateStr) {
+          const tasks = this.getTasksForDay(dateStr);
+          const total = tasks.reduce((sum, t) => sum + (t.expected_minutes || 0), 0);
+          if (total === 0) return '';
+          const hrs = Math.floor(total / 60);
+          const mins = total % 60;
+          return hrs > 0 ? `${hrs}h ${mins}m total` : `${mins}m total`;
+        },
+
+        scrollToDay(idx) {
+          this.selectedDayIdx = idx;
+          const panel = document.getElementById('panel-' + idx);
+          if (panel) {
+            panel.scrollIntoView({ behavior: 'smooth', inline: 'center' });
           }
         },
-        
-        async generateTodaysTasks() {
-          try {
-            const response = await fetch('/api/admin/generate/today', { method: 'POST' });
-            this.todaysTasks = await response.json();
-          } catch (err) {
-            console.error('Failed to generate tasks:', err);
-          }
+
+        onScroll() {
+          // Update selected day based on scroll position
+          const container = document.getElementById('day-panels');
+          const panels = container.querySelectorAll('.day-panel');
+          const containerCenter = container.scrollLeft + container.clientWidth / 2;
+          
+          let closestIdx = 0;
+          let closestDist = Infinity;
+          
+          panels.forEach((panel, idx) => {
+            const panelCenter = panel.offsetLeft + panel.clientWidth / 2;
+            const dist = Math.abs(panelCenter - containerCenter);
+            if (dist < closestDist) {
+              closestDist = dist;
+              closestIdx = idx;
+            }
+          });
+          
+          this.selectedDayIdx = closestIdx;
         },
-        
-        openCreateModal() {
-          this.editingTemplate = null;
+
+        openCreateModal(dateStr, order) {
+          this.editingTask = null;
+          this.insertAtDate = dateStr;
+          this.insertAtOrder = order;
           this.form = {
             title: '',
             description: '',
-            priority: 'required',
-            default_weekday: 'tuesday',
-            order: this.templates.length,
-            is_active: true
+            priority: 'optional',
+            expected_minutes: 30,
+            is_recurring: true
           };
           this.showModal = true;
         },
-        
-        openEditModal(template) {
-          this.editingTemplate = template;
-          this.form = { ...template };
+
+        openEditModal(task) {
+          this.editingTask = task;
+          this.form = {
+            title: task.title,
+            description: task.description || '',
+            priority: task.priority,
+            expected_minutes: task.expected_minutes || 30,
+            is_recurring: false  // Can't change recurring for existing tasks
+          };
           this.showModal = true;
         },
-        
-        async saveTemplate() {
+
+        async saveTask() {
+          if (this.editingTask) {
+            // Update existing task
+            try {
+              await fetch(`/api/tasks/${this.editingTask.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: this.form.title,
+                  description: this.form.description || null,
+                  priority: this.form.priority,
+                  expected_minutes: this.form.expected_minutes
+                })
+              });
+            } catch (err) {
+              console.error('Failed to update task:', err);
+            }
+          } else {
+            // Create new task
+            // First, shift orders of tasks at or after insert position
+            const dayTasks = this.getTasksForDay(this.insertAtDate);
+            for (const t of dayTasks) {
+              if (t.order >= this.insertAtOrder) {
+                t.order += 1;
+              }
+            }
+            // Save the new orders
+            if (dayTasks.length > 0) {
+              await fetch('/api/admin/tasks/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dayTasks.map(t => ({ id: t.id, order: t.order })))
+              });
+            }
+            
+            // Create the task
+            try {
+              await fetch('/api/admin/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: this.form.title,
+                  description: this.form.description || null,
+                  priority: this.form.priority,
+                  expected_minutes: this.form.expected_minutes,
+                  order: this.insertAtOrder,
+                  scheduled_date: this.insertAtDate
+                })
+              });
+
+              // TODO: If is_recurring, also create a template
+            } catch (err) {
+              console.error('Failed to create task:', err);
+            }
+          }
+
+          this.showModal = false;
+          await this.loadAllTasks();
+        },
+
+        async deleteTask(taskId) {
+          if (!confirm('Delete this task?')) return;
           try {
-            const url = this.editingTemplate 
-              ? `/api/admin/templates/${this.editingTemplate.id}`
-              : '/api/admin/templates';
-            const method = this.editingTemplate ? 'PATCH' : 'POST';
-            
-            await fetch(url, {
-              method,
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(this.form)
-            });
-            
-            this.showModal = false;
-            await this.loadTemplates();
+            await fetch(`/api/admin/tasks/${taskId}`, { method: 'DELETE' });
+            await this.loadAllTasks();
           } catch (err) {
-            console.error('Failed to save template:', err);
+            console.error('Failed to delete task:', err);
           }
         },
-        
-        async deleteTemplate(id) {
-          if (!confirm('Delete this task template?')) return;
-          try {
-            await fetch(`/api/admin/templates/${id}`, { method: 'DELETE' });
-            await this.loadTemplates();
-          } catch (err) {
-            console.error('Failed to delete template:', err);
-          }
-        },
-        
-        capitalizeFirst(str) {
-          return str.charAt(0).toUpperCase() + str.slice(1);
+
+        async moveTask(task, direction, dateStr) {
+          const dayTasks = this.getTasksForDay(dateStr);
+          const currentIdx = dayTasks.findIndex(t => t.id === task.id);
+          const newIdx = currentIdx + direction;
+          
+          if (newIdx < 0 || newIdx >= dayTasks.length) return;
+          
+          // Swap orders
+          const other = dayTasks[newIdx];
+          const tempOrder = task.order;
+          task.order = other.order;
+          other.order = tempOrder;
+          
+          // Save new orders
+          await fetch('/api/admin/tasks/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify([
+              { id: task.id, order: task.order },
+              { id: other.id, order: other.order }
+            ])
+          });
+          
+          await this.loadAllTasks();
         }
       };
     }
   </script>
 </body>
 </html>
-

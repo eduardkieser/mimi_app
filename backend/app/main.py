@@ -63,3 +63,5 @@ if templates_path.exists():
 def health_check():
     return {"status": "ok", "app": settings.app_name}
 
+
+

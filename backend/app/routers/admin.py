@@ -9,7 +9,7 @@ from datetime import date
 from app.database import get_session
 from app.models import (
     TaskTemplateCreate, TaskTemplateRead, TaskTemplateUpdate,
-    TaskRead
+    TaskRead, TaskCreate, Task
 )
 from app.services import task_service
 
@@ -78,4 +78,47 @@ def generate_tasks(target_date: date, session: Session = Depends(get_session)):
 def generate_todays_tasks(session: Session = Depends(get_session)):
     """Manually generate today's tasks from templates."""
     return task_service.generate_tasks_for_date(session, date.today())
+
+
+# ============ Direct Task Creation ============
+
+@router.post("/tasks", response_model=TaskRead)
+def create_task(task_data: TaskCreate, session: Session = Depends(get_session)):
+    """Create an ad-hoc task for a specific date."""
+    task = Task(
+        title=task_data.title,
+        description=task_data.description,
+        priority=task_data.priority,
+        order=task_data.order,
+        expected_minutes=task_data.expected_minutes,
+        scheduled_date=task_data.scheduled_date,
+        template_id=None,
+    )
+    session.add(task)
+    session.commit()
+    session.refresh(task)
+    return task
+
+
+@router.delete("/tasks/{task_id}")
+def delete_task(task_id: int, session: Session = Depends(get_session)):
+    """Delete a task."""
+    task = task_service.get_task(session, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    session.delete(task)
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/tasks/reorder")
+def reorder_tasks(task_orders: list[dict], session: Session = Depends(get_session)):
+    """Update order of multiple tasks. Expects [{id: 1, order: 0}, ...]"""
+    for item in task_orders:
+        task = task_service.get_task(session, item["id"])
+        if task:
+            task.order = item["order"]
+            session.add(task)
+    session.commit()
+    return {"ok": True}
 

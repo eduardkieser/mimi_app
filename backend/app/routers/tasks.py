@@ -68,3 +68,5 @@ def get_history(days: int = 7, session: Session = Depends(get_session)):
         for d, tasks in history.items()
     }
 
+
+

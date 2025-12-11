@@ -120,6 +120,7 @@ def generate_tasks_for_date(session: Session, target_date: date) -> list[Task]:
             description=template.description,
             priority=template.priority,
             order=template.order,
+            expected_minutes=template.expected_minutes,
             scheduled_date=target_date,
             template_id=template.id,
         )
@@ -201,4 +202,6 @@ def get_recent_days(session: Session, days: int = 7) -> dict[date, list[Task]]:
         result[d] = get_tasks_for_date(session, d)
     
     return result
+
+
 

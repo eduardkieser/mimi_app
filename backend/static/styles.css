@@ -235,6 +235,20 @@ body {
   color: var(--text-muted);
 }
 
+.task-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.total-time {
+  text-align: center;
+  padding: 16px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 16px;
+}
+
 .task-badge {
   font-size: 0.75rem;
   padding: 4px 10px;
@@ -555,4 +569,6 @@ body {
     display: none;
   }
 }
+
+
 

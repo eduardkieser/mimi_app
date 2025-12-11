@@ -122,3 +122,17 @@ def reorder_tasks(task_orders: list[dict], session: Session = Depends(get_sessio
     session.commit()
     return {"ok": True}
 
+
+@router.post("/tasks/{task_id}/move")
+def move_task(task_id: int, target_date: date, order: int, session: Session = Depends(get_session)):
+    """Move a task to a different date and/or order."""
+    task = task_service.get_task(session, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    task.scheduled_date = target_date
+    task.order = order
+    session.add(task)
+    session.commit()
+    session.refresh(task)
+    return task
+

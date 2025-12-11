@@ -158,6 +158,24 @@
       background: var(--bg-hover);
     }
 
+    .admin-task-card[draggable="true"] {
+      cursor: grab;
+    }
+
+    .admin-task-card.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+
+    .admin-task-card.drag-over {
+      border-top: 2px solid var(--accent);
+      margin-top: -2px;
+    }
+
+    .day-panel.drag-over {
+      background: var(--bg-hover);
+    }
+
     .admin-task-content {
       padding: 12px;
       display: flex;
@@ -168,14 +186,6 @@
     .admin-task-title {
       flex: 1;
       font-weight: 500;
-    }
-
-    .admin-task-time {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      background: var(--bg-card);
-      padding: 2px 8px;
-      border-radius: 10px;
     }
 
     .admin-task-actions {
@@ -210,11 +220,6 @@
 
     .admin-task-btn.delete:hover {
       background: var(--color-required);
-    }
-
-    .admin-task-btn.up:hover,
-    .admin-task-btn.down:hover {
-      background: var(--color-optional);
     }
 
     /* Insert button between tasks */
@@ -457,7 +462,13 @@
               <div class="date-str" x-text="day.dateFormatted"></div>
               <div class="total-time" x-text="getDayTotalTime(day.dateStr)"></div>
             </div>
-            <div class="day-panel-tasks">
+            <div 
+              class="day-panel-tasks"
+              :data-date="day.dateStr"
+              @dragover.prevent="onDragOver($event, day.dateStr)"
+              @dragleave="onDragLeave($event)"
+              @drop="onDrop($event, day.dateStr)"
+            >
               <!-- Insert at top -->
               <div class="insert-btn">
                 <button @click="openCreateModal(day.dateStr, 0)">
@@ -466,36 +477,36 @@
               </div>
 
               <template x-for="(task, taskIdx) in getTasksForDay(day.dateStr)" :key="task.id">
-                <div>
-                  <div 
-                    class="admin-task-card"
-                    :class="task.priority"
-                    :style="`min-height: ${Math.max(40, task.expected_minutes)}px`"
-                  >
-                    <div class="admin-task-content">
-                      <span class="admin-task-title" x-text="task.title"></span>
-                      <span class="admin-task-time" x-text="task.expected_minutes + 'm'"></span>
-                      <div class="admin-task-actions">
-                        <button class="admin-task-btn up" @click="moveTask(task, -1, day.dateStr)" title="Move up">↑</button>
-                        <button class="admin-task-btn down" @click="moveTask(task, 1, day.dateStr)" title="Move down">↓</button>
-                        <button class="admin-task-btn edit" @click="openEditModal(task)" title="Edit">✎</button>
-                        <button class="admin-task-btn delete" @click="deleteTask(task.id)" title="Delete">×</button>
-                      </div>
+                <div
+                  class="admin-task-card"
+                  :class="[task.priority, { 'dragging': draggedTask?.id === task.id }]"
+                  :style="`min-height: ${Math.max(40, task.expected_minutes)}px`"
+                  draggable="true"
+                  :data-task-id="task.id"
+                  :data-order="task.order"
+                  @dragstart="onDragStart($event, task, day.dateStr)"
+                  @dragend="onDragEnd($event)"
+                  @dragover.prevent="onTaskDragOver($event, task)"
+                  @dragleave="onTaskDragLeave($event)"
+                >
+                  <div class="admin-task-content">
+                    <span class="admin-task-title" x-text="task.title"></span>
+                    <div class="admin-task-actions">
+                      <button class="admin-task-btn edit" @click.stop="openEditModal(task)" title="Edit">✎</button>
+                      <button class="admin-task-btn delete" @click.stop="deleteTask(task.id)" title="Delete">×</button>
                     </div>
-                  </div>
-                  <!-- Insert after this task -->
-                  <div class="insert-btn">
-                    <button @click="openCreateModal(day.dateStr, taskIdx + 1)">
-                      <span>+</span> Insert
-                    </button>
                   </div>
                 </div>
               </template>
 
-              <!-- Empty state -->
-              <div class="empty-day" x-show="getTasksForDay(day.dateStr).length === 0">
-                <p>No tasks scheduled</p>
-                <button class="btn btn-primary" @click="openCreateModal(day.dateStr, 0)">Add first task</button>
+              <!-- Empty state / drop zone -->
+              <div 
+                class="empty-day" 
+                x-show="getTasksForDay(day.dateStr).length === 0"
+                @dragover.prevent
+              >
+                <p x-text="draggedTask ? 'Drop here' : 'No tasks scheduled'"></p>
+                <button class="btn btn-primary" @click="openCreateModal(day.dateStr, 0)" x-show="!draggedTask">Add first task</button>
               </div>
             </div>
           </div>
@@ -580,6 +591,11 @@
           expected_minutes: 30,
           is_recurring: true
         },
+        
+        // Drag and drop state
+        draggedTask: null,
+        draggedFromDate: null,
+        dropTargetTask: null,
 
         async init() {
           this.buildDays();
@@ -760,29 +776,116 @@
           }
         },
 
-        async moveTask(task, direction, dateStr) {
-          const dayTasks = this.getTasksForDay(dateStr);
-          const currentIdx = dayTasks.findIndex(t => t.id === task.id);
-          const newIdx = currentIdx + direction;
+        // Drag and drop handlers
+        onDragStart(e, task, dateStr) {
+          this.draggedTask = task;
+          this.draggedFromDate = dateStr;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', task.id);
+          // Add dragging class after a tick to not affect the drag image
+          setTimeout(() => {
+            e.target.classList.add('dragging');
+          }, 0);
+        },
+        
+        onDragEnd(e) {
+          e.target.classList.remove('dragging');
+          this.draggedTask = null;
+          this.draggedFromDate = null;
+          this.dropTargetTask = null;
+          // Remove all drag-over classes
+          document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        },
+        
+        onTaskDragOver(e, task) {
+          if (!this.draggedTask || this.draggedTask.id === task.id) return;
+          e.target.closest('.admin-task-card')?.classList.add('drag-over');
+          this.dropTargetTask = task;
+        },
+        
+        onTaskDragLeave(e) {
+          e.target.closest('.admin-task-card')?.classList.remove('drag-over');
+        },
+        
+        onDragOver(e, dateStr) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+        },
+        
+        onDragLeave(e) {
+          // Only remove if leaving the panel entirely
+          if (!e.relatedTarget?.closest('.day-panel-tasks')) {
+            e.currentTarget.closest('.day-panel')?.classList.remove('drag-over');
+          }
+        },
+        
+        async onDrop(e, targetDate) {
+          e.preventDefault();
+          document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
           
-          if (newIdx < 0 || newIdx >= dayTasks.length) return;
+          if (!this.draggedTask) return;
           
-          // Swap orders
-          const other = dayTasks[newIdx];
-          const tempOrder = task.order;
-          task.order = other.order;
-          other.order = tempOrder;
+          const task = this.draggedTask;
+          const fromDate = this.draggedFromDate;
+          const targetTasks = this.getTasksForDay(targetDate);
           
-          // Save new orders
-          await fetch('/api/admin/tasks/reorder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify([
-              { id: task.id, order: task.order },
-              { id: other.id, order: other.order }
-            ])
-          });
+          // Determine new order
+          let newOrder = 0;
+          if (this.dropTargetTask && targetDate === this.dropTargetTask.scheduled_date?.split('T')[0]) {
+            // Dropped on another task - insert before it
+            newOrder = this.dropTargetTask.order;
+          } else if (targetTasks.length > 0) {
+            // Dropped in empty area - add to end
+            newOrder = Math.max(...targetTasks.map(t => t.order)) + 1;
+          }
           
+          // If same day and we have a target, reorder locally
+          if (fromDate === targetDate && this.dropTargetTask) {
+            // Reorder within same day
+            const tasks = [...targetTasks];
+            const fromIdx = tasks.findIndex(t => t.id === task.id);
+            const toIdx = tasks.findIndex(t => t.id === this.dropTargetTask.id);
+            
+            if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
+              // Remove from old position
+              tasks.splice(fromIdx, 1);
+              // Insert at new position
+              const insertIdx = fromIdx < toIdx ? toIdx - 1 : toIdx;
+              tasks.splice(insertIdx, 0, task);
+              
+              // Update all orders
+              const reorders = tasks.map((t, i) => ({ id: t.id, order: i }));
+              await fetch('/api/admin/tasks/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reorders)
+              });
+            }
+          } else if (fromDate !== targetDate) {
+            // Moving to different day
+            // Shift orders in target day
+            for (const t of targetTasks) {
+              if (t.order >= newOrder) {
+                t.order += 1;
+              }
+            }
+            if (targetTasks.length > 0) {
+              await fetch('/api/admin/tasks/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(targetTasks.map(t => ({ id: t.id, order: t.order })))
+              });
+            }
+            
+            // Move the task
+            await fetch(`/api/admin/tasks/${task.id}/move?target_date=${targetDate}&order=${newOrder}`, {
+              method: 'POST'
+            });
+          }
+          
+          this.draggedTask = null;
+          this.draggedFromDate = null;
+          this.dropTargetTask = null;
           await this.loadAllTasks();
         }
       };

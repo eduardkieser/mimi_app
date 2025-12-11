@@ -40,20 +40,8 @@
   
   <div class="container">
     <header class="header">
-      <h1>Mimi.Today</h1>
-      <p class="subtitle">Let's make today shine! ✨</p>
       <p class="date" x-text="todayFormatted"></p>
     </header>
-
-    <!-- Progress -->
-    <div class="progress-container">
-      <div class="progress-bar">
-        <div class="progress-fill" :style="`width: ${progressPercent}%`"></div>
-      </div>
-      <div class="progress-label">
-        <span x-text="`${completedCount} / ${totalCount}`"></span>
-      </div>
-    </div>
 
     <!-- Task list -->
     <div class="task-list" id="task-list">
@@ -93,18 +81,8 @@
 
       <!-- Empty state -->
       <div class="empty-state" x-show="tasks.length === 0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-        </svg>
-        <h3>No tasks for today</h3>
-        <p>Enjoy your day off! 🎉</p>
+        <p>No tasks for today</p>
       </div>
-    </div>
-
-    <!-- All done celebration -->
-    <div class="all-done" x-show="allDone && tasks.length > 0" x-transition>
-      <h2>🎉 All Done!</h2>
-      <p>Amazing work today, Mimi!</p>
     </div>
   </div>
 
@@ -113,23 +91,6 @@
       return {
         tasks: [],
         theme: localStorage.getItem('mimi-theme') || 'dark',
-        
-        get completedCount() {
-          return this.tasks.filter(t => t.status === 'completed').length;
-        },
-        
-        get totalCount() {
-          return this.tasks.length;
-        },
-        
-        get progressPercent() {
-          if (this.totalCount === 0) return 0;
-          return Math.round((this.completedCount / this.totalCount) * 100);
-        },
-        
-        get allDone() {
-          return this.totalCount > 0 && this.completedCount === this.totalCount;
-        },
         
         get todayFormatted() {
           return new Date().toLocaleDateString('en-US', { 

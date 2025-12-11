@@ -194,33 +194,33 @@
           try {
             const audioCtx = this.getAudioContext();
             
-            // Main tone - brighter C7
+            // Main tone - A5
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             
-            oscillator.frequency.value = 2093; // C7 - bright and clear
+            oscillator.frequency.value = 880; // A5 - warm and pleasant
             oscillator.type = 'sine';
             
-            gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
             
             oscillator.start(audioCtx.currentTime);
-            oscillator.stop(audioCtx.currentTime + 0.3);
+            oscillator.stop(audioCtx.currentTime + 0.5);
             
-            // Harmonic for sparkle - G7
+            // Harmonic for richness - E6
             const osc2 = audioCtx.createOscillator();
             const gain2 = audioCtx.createGain();
             osc2.connect(gain2);
             gain2.connect(audioCtx.destination);
-            osc2.frequency.value = 3136; // G7
+            osc2.frequency.value = 1320; // E6
             osc2.type = 'sine';
-            gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
             osc2.start(audioCtx.currentTime);
-            osc2.stop(audioCtx.currentTime + 0.2);
+            osc2.stop(audioCtx.currentTime + 0.3);
           } catch (e) {
             console.warn('Audio playback failed:', e);
           }

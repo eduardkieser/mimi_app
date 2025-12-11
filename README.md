@@ -1,53 +1,70 @@
 # Mimi.Today
 
-A gamified task list app for household cleaning, designed to run on a local network.
+A task list app for household cleaning, designed to run on a local network.
 
 ## Overview
 
-- **Mimi** (cleaner) accesses `mimi.today` to view and complete daily tasks
-- **Ilsa** (admin) accesses `ilsa.admin` to manage task templates and schedules
+- **Mimi** (cleaner) views and completes daily tasks
+- **Ilsa** (admin) manages task templates and schedules
 
-## Features
+## Running the App
 
-- Color-coded task cards: 🔴 Required → 🟢 Done, 🟡 Optional → 🟢 Done
-- Satisfying sound feedback on task completion
-- Weekly recurring tasks with easy overrides
-- Task completion history
+### Quick Start (Development)
+
+```bash
+cd backend
+source venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Run Detached (Background)
+
+To run the server so it persists after closing the terminal:
+
+```bash
+cd /Users/eduard/workspace/mimi_app/backend
+source venv/bin/activate
+nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
+echo $! > server.pid
+```
+
+This will:
+- Run the server in the background
+- Save logs to `server.log`
+- Save the process ID to `server.pid`
+
+### Stop the Server
+
+```bash
+kill $(cat /Users/eduard/workspace/mimi_app/backend/server.pid)
+```
+
+### Access
+
+Once running, access from any device on your network:
+
+| View | URL |
+|------|-----|
+| Mimi (tasks) | http://YOUR_IP:8000/ |
+| Admin | http://YOUR_IP:8000/admin |
+
+Find your IP with: `ipconfig getifaddr en0`
 
 ## Stack
 
-- **Backend**: FastAPI + SQLite
-- **Frontend Option 1**: Flutter Web (PWA)
-- **Frontend Option 2**: HTMX + Alpine.js (ultra-lightweight)
-- **Deployment**: Docker Compose + Caddy reverse proxy
-
-## Quick Start
-
-```bash
-docker-compose up -d
-```
-
-Then configure local DNS to point `mimi.today` and `ilsa.admin` to your server.
-
-See `docs/` for detailed setup guides.
+- **Backend**: FastAPI + SQLite + SQLModel
+- **Frontend**: HTMX + Alpine.js
 
 ## Development
 
 ```bash
-# Backend
 cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
-
-# Flutter
-cd frontend_flutter
-flutter pub get
-flutter run -d chrome
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## License
 
 Private / Personal Use
-

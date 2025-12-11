@@ -176,13 +176,19 @@
     }
 
     .admin-task-card.dragging {
-      opacity: 0.4;
+      opacity: 0.3;
       cursor: grabbing;
     }
 
-    .admin-task-card.drag-over {
-      border-top: 2px solid var(--accent);
-      margin-top: -2px;
+    .admin-task-card.preview-slot {
+      background: transparent;
+      border: 2px dashed var(--accent);
+      border-left-width: 2px;
+      opacity: 0.6;
+    }
+
+    .admin-task-card.preview-slot .admin-task-content {
+      opacity: 0.5;
     }
 
     .day-panel-tasks.drag-over-panel {
@@ -491,30 +497,30 @@
                 <button @click="openCreateModal(day.dateStr, 0)" title="Add task">+</button>
               </div>
 
-              <template x-for="(task, taskIdx) in getTasksForDay(day.dateStr)" :key="task.id">
+              <template x-for="(task, taskIdx) in getTasksForDayWithPreview(day.dateStr)" :key="task.id + (task.isPreview ? '-preview' : '')">
                 <div>
                   <div
                     class="admin-task-card"
-                    :class="[task.priority, { 'dragging': draggedTask?.id === task.id }]"
+                    :class="[task.priority, { 'dragging': draggedTask?.id === task.id && !task.isPreview, 'preview-slot': task.isPreview }]"
                     :style="`min-height: ${Math.max(40, task.expected_minutes)}px`"
-                    draggable="true"
+                    :draggable="!task.isPreview"
                     :data-task-id="task.id"
                     :data-order="task.order"
-                    @dragstart="onDragStart($event, task, day.dateStr)"
+                    @dragstart="!task.isPreview && onDragStart($event, task, day.dateStr)"
                     @dragend="onDragEnd($event)"
-                    @dragover.prevent="onTaskDragOver($event, task)"
+                    @dragover.prevent="onTaskDragOver($event, task, day.dateStr, taskIdx)"
                     @dragleave="onTaskDragLeave($event)"
                   >
                     <div class="admin-task-content">
                       <span class="admin-task-title" x-text="task.title"></span>
-                      <div class="admin-task-actions">
+                      <div class="admin-task-actions" x-show="!task.isPreview">
                         <button class="admin-task-btn edit" @click.stop="openEditModal(task)" title="Edit">✎</button>
                         <button class="admin-task-btn delete" @click.stop="deleteTask(task.id)" title="Delete">×</button>
                       </div>
                     </div>
                   </div>
                   <!-- Insert after this task -->
-                  <div class="insert-btn">
+                  <div class="insert-btn" x-show="!task.isPreview && !draggedTask">
                     <button @click="openCreateModal(day.dateStr, taskIdx + 1)" title="Insert task">+</button>
                   </div>
                 </div>
@@ -523,10 +529,10 @@
               <!-- Empty state / drop zone -->
               <div 
                 class="empty-day" 
-                x-show="getTasksForDay(day.dateStr).length === 0"
+                x-show="getTasksForDayWithPreview(day.dateStr).length === 0"
                 @dragover.prevent
               >
-                <p x-text="draggedTask ? 'Drop here' : 'No tasks yet'"></p>
+                <p>No tasks yet</p>
               </div>
             </div>
           </div>
@@ -616,6 +622,9 @@
         draggedTask: null,
         draggedFromDate: null,
         dropTargetTask: null,
+        previewDate: null,
+        previewIndex: null,
+        lastPreviewIndex: null,
 
         async init() {
           this.buildDays();
@@ -802,84 +811,144 @@
           }
         },
 
+        // Haptic feedback
+        vibrate() {
+          if (navigator.vibrate) {
+            navigator.vibrate(30);
+          }
+        },
+
+        // Get tasks with drag preview applied
+        getTasksForDayWithPreview(dateStr) {
+          let tasks = [...(this.tasks[dateStr] || [])];
+          
+          if (!this.draggedTask) return tasks;
+          
+          // Remove dragged task from its original position
+          if (this.draggedFromDate === dateStr) {
+            tasks = tasks.filter(t => t.id !== this.draggedTask.id);
+          }
+          
+          // Insert at preview position if this is the target day
+          if (this.previewDate === dateStr && this.previewIndex !== null) {
+            tasks.splice(this.previewIndex, 0, { ...this.draggedTask, isPreview: true });
+          }
+          
+          return tasks;
+        },
+
         // Drag and drop handlers
         onDragStart(e, task, dateStr) {
           this.draggedTask = task;
           this.draggedFromDate = dateStr;
+          this.previewDate = dateStr;
+          const tasks = this.tasks[dateStr] || [];
+          this.previewIndex = tasks.findIndex(t => t.id === task.id);
+          this.lastPreviewIndex = this.previewIndex;
+          
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', task.id);
-          // Add dragging class after a tick to not affect the drag image
-          setTimeout(() => {
-            e.target.classList.add('dragging');
-          }, 0);
         },
         
         onDragEnd(e) {
-          e.target.classList.remove('dragging');
           this.draggedTask = null;
           this.draggedFromDate = null;
           this.dropTargetTask = null;
-          // Remove all drag-over classes
-          document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+          this.previewDate = null;
+          this.previewIndex = null;
+          this.lastPreviewIndex = null;
         },
         
-        onTaskDragOver(e, task) {
+        onTaskDragOver(e, task, dateStr, taskIdx) {
           if (!this.draggedTask || this.draggedTask.id === task.id) return;
-          e.target.closest('.admin-task-card')?.classList.add('drag-over');
+          e.preventDefault();
+          
+          // Calculate which half of the task we're over
+          const rect = e.target.closest('.admin-task-card').getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          const insertBefore = e.clientY < midY;
+          
+          // Adjust index based on position
+          let newIndex = insertBefore ? taskIdx : taskIdx + 1;
+          
+          // If dragging within same day, account for the removed item
+          if (this.draggedFromDate === dateStr) {
+            const origIdx = (this.tasks[dateStr] || []).findIndex(t => t.id === this.draggedTask.id);
+            if (origIdx < taskIdx) {
+              newIndex = insertBefore ? taskIdx - 1 : taskIdx;
+            }
+          }
+          
+          // Update preview if changed
+          if (this.previewDate !== dateStr || this.previewIndex !== newIndex) {
+            this.previewDate = dateStr;
+            this.previewIndex = newIndex;
+            
+            // Haptic on position change
+            if (this.lastPreviewIndex !== newIndex) {
+              this.vibrate();
+              this.lastPreviewIndex = newIndex;
+            }
+          }
+          
           this.dropTargetTask = task;
         },
         
         onTaskDragLeave(e) {
-          e.target.closest('.admin-task-card')?.classList.remove('drag-over');
+          // Don't clear preview on leave - let dragover on panel handle it
         },
         
         onDragOver(e, dateStr) {
+          if (!this.draggedTask) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
+          
+          // If over empty area, preview at end
+          const tasks = this.tasks[dateStr] || [];
+          const nonDraggedCount = this.draggedFromDate === dateStr 
+            ? tasks.filter(t => t.id !== this.draggedTask.id).length 
+            : tasks.length;
+          
+          if (this.previewDate !== dateStr) {
+            this.previewDate = dateStr;
+            this.previewIndex = nonDraggedCount;
+            if (this.lastPreviewIndex !== this.previewIndex) {
+              this.vibrate();
+              this.lastPreviewIndex = this.previewIndex;
+            }
+          }
         },
         
         onDragLeave(e) {
-          // Only remove if leaving the panel entirely
-          if (!e.relatedTarget?.closest('.day-panel-tasks')) {
-            e.currentTarget.closest('.day-panel')?.classList.remove('drag-over');
+          // Only clear if leaving the panel entirely
+          if (!e.relatedTarget?.closest('.day-panel-tasks[data-date="' + this.previewDate + '"]')) {
+            // Reset preview to original position
+            if (this.draggedFromDate) {
+              this.previewDate = this.draggedFromDate;
+              const tasks = this.tasks[this.draggedFromDate] || [];
+              this.previewIndex = tasks.findIndex(t => t.id === this.draggedTask?.id);
+            }
           }
         },
         
         async onDrop(e, targetDate) {
           e.preventDefault();
-          document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
           
-          if (!this.draggedTask) return;
+          if (!this.draggedTask || this.previewIndex === null) return;
           
           const task = this.draggedTask;
           const fromDate = this.draggedFromDate;
-          const targetTasks = this.getTasksForDay(targetDate);
+          const toIndex = this.previewIndex;
           
-          // Determine new order
-          let newOrder = 0;
-          if (this.dropTargetTask && targetDate === this.dropTargetTask.scheduled_date?.split('T')[0]) {
-            // Dropped on another task - insert before it
-            newOrder = this.dropTargetTask.order;
-          } else if (targetTasks.length > 0) {
-            // Dropped in empty area - add to end
-            newOrder = Math.max(...targetTasks.map(t => t.order)) + 1;
-          }
-          
-          // If same day and we have a target, reorder locally
-          if (fromDate === targetDate && this.dropTargetTask) {
-            // Reorder within same day
-            const tasks = [...targetTasks];
+          // Same day reorder
+          if (fromDate === targetDate) {
+            const tasks = [...(this.tasks[targetDate] || [])];
             const fromIdx = tasks.findIndex(t => t.id === task.id);
-            const toIdx = tasks.findIndex(t => t.id === this.dropTargetTask.id);
             
-            if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
-              // Remove from old position
+            if (fromIdx !== -1 && fromIdx !== toIndex) {
               tasks.splice(fromIdx, 1);
-              // Insert at new position
-              const insertIdx = fromIdx < toIdx ? toIdx - 1 : toIdx;
-              tasks.splice(insertIdx, 0, task);
+              tasks.splice(toIndex, 0, task);
               
-              // Update all orders
               const reorders = tasks.map((t, i) => ({ id: t.id, order: i }));
               await fetch('/api/admin/tasks/reorder', {
                 method: 'POST',
@@ -887,13 +956,13 @@
                 body: JSON.stringify(reorders)
               });
             }
-          } else if (fromDate !== targetDate) {
+          } else {
             // Moving to different day
+            const targetTasks = [...(this.tasks[targetDate] || [])];
+            
             // Shift orders in target day
-            for (const t of targetTasks) {
-              if (t.order >= newOrder) {
-                t.order += 1;
-              }
+            for (let i = targetTasks.length - 1; i >= toIndex; i--) {
+              targetTasks[i].order = i + 1;
             }
             if (targetTasks.length > 0) {
               await fetch('/api/admin/tasks/reorder', {
@@ -904,14 +973,19 @@
             }
             
             // Move the task
-            await fetch(`/api/admin/tasks/${task.id}/move?target_date=${targetDate}&order=${newOrder}`, {
+            await fetch(`/api/admin/tasks/${task.id}/move?target_date=${targetDate}&order=${toIndex}`, {
               method: 'POST'
             });
           }
           
+          // Clear drag state
           this.draggedTask = null;
           this.draggedFromDate = null;
           this.dropTargetTask = null;
+          this.previewDate = null;
+          this.previewIndex = null;
+          this.lastPreviewIndex = null;
+          
           await this.loadAllTasks();
         }
       };

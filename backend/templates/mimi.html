@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mimi.Today</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
+</head>
+<body x-data="taskApp()">
+  <div class="container">
+    <header class="header">
+      <h1>Mimi.Today</h1>
+      <p class="subtitle">Let's make today shine! ✨</p>
+      <p class="date" x-text="todayFormatted"></p>
+    </header>
+
+    <!-- Progress -->
+    <div class="progress-container">
+      <div class="progress-label">
+        <span>Progress</span>
+        <span x-text="`${completedCount} / ${totalCount} tasks`"></span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" :style="`width: ${progressPercent}%`"></div>
+      </div>
+    </div>
+
+    <!-- Task list -->
+    <div class="task-list" id="task-list">
+      <template x-for="task in tasks" :key="task.id">
+        <div 
+          class="task-card"
+          :class="{
+            'required': task.priority === 'required' && task.status !== 'completed',
+            'optional': task.priority === 'optional' && task.status !== 'completed',
+            'completed': task.status === 'completed',
+            'just-completed': task.justCompleted
+          }"
+          @click="toggleTask(task)"
+        >
+          <div class="task-content">
+            <div class="task-checkbox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="task-info">
+              <div class="task-title" x-text="task.title"></div>
+              <div class="task-description" x-text="task.description || ''"></div>
+            </div>
+            <span 
+              class="task-badge"
+              :class="{
+                'required': task.priority === 'required' && task.status !== 'completed',
+                'optional': task.priority === 'optional' && task.status !== 'completed',
+                'done': task.status === 'completed'
+              }"
+              x-text="task.status === 'completed' ? 'Done!' : task.priority"
+            ></span>
+          </div>
+        </div>
+      </template>
+
+      <!-- Empty state -->
+      <div class="empty-state" x-show="tasks.length === 0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        <h3>No tasks for today</h3>
+        <p>Enjoy your day off! 🎉</p>
+      </div>
+    </div>
+
+    <!-- All done celebration -->
+    <div class="all-done" x-show="allDone && tasks.length > 0" x-transition>
+      <h2>🎉 All Done!</h2>
+      <p>Amazing work today, Mimi!</p>
+    </div>
+  </div>
+
+  <script>
+    function taskApp() {
+      return {
+        tasks: [],
+        
+        get completedCount() {
+          return this.tasks.filter(t => t.status === 'completed').length;
+        },
+        
+        get totalCount() {
+          return this.tasks.length;
+        },
+        
+        get progressPercent() {
+          if (this.totalCount === 0) return 0;
+          return Math.round((this.completedCount / this.totalCount) * 100);
+        },
+        
+        get allDone() {
+          return this.totalCount > 0 && this.completedCount === this.totalCount;
+        },
+        
+        get todayFormatted() {
+          return new Date().toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
+        },
+        
+        async init() {
+          await this.loadTasks();
+        },
+        
+        async loadTasks() {
+          try {
+            const response = await fetch('/api/tasks/today');
+            this.tasks = await response.json();
+            // Sort: pending first (by priority), then completed
+            this.tasks.sort((a, b) => {
+              if (a.status === 'completed' && b.status !== 'completed') return 1;
+              if (a.status !== 'completed' && b.status === 'completed') return -1;
+              if (a.priority === 'required' && b.priority === 'optional') return -1;
+              if (a.priority === 'optional' && b.priority === 'required') return 1;
+              return a.order - b.order;
+            });
+          } catch (err) {
+            console.error('Failed to load tasks:', err);
+          }
+        },
+        
+        async toggleTask(task) {
+          const wasCompleted = task.status === 'completed';
+          const endpoint = wasCompleted 
+            ? `/api/tasks/${task.id}/uncomplete`
+            : `/api/tasks/${task.id}/complete`;
+          
+          try {
+            const response = await fetch(endpoint, { method: 'POST' });
+            const updated = await response.json();
+            
+            // Update task in list
+            const idx = this.tasks.findIndex(t => t.id === task.id);
+            if (idx !== -1) {
+              this.tasks[idx] = { ...updated, justCompleted: !wasCompleted };
+              
+              // Play sound on completion
+              if (!wasCompleted) {
+                this.playDing();
+                // Remove animation class after animation
+                setTimeout(() => {
+                  this.tasks[idx].justCompleted = false;
+                }, 500);
+              }
+              
+              // Re-sort after short delay for visual effect
+              setTimeout(() => {
+                this.tasks.sort((a, b) => {
+                  if (a.status === 'completed' && b.status !== 'completed') return 1;
+                  if (a.status !== 'completed' && b.status === 'completed') return -1;
+                  if (a.priority === 'required' && b.priority === 'optional') return -1;
+                  if (a.priority === 'optional' && b.priority === 'required') return 1;
+                  return a.order - b.order;
+                });
+              }, 300);
+            }
+          } catch (err) {
+            console.error('Failed to toggle task:', err);
+          }
+        },
+        
+        playDing() {
+          // Generate a pleasant "ding" using Web Audio API
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          
+          // Main tone
+          const oscillator = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          
+          oscillator.frequency.value = 880; // A5 note
+          oscillator.type = 'sine';
+          
+          gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+          
+          oscillator.start(audioCtx.currentTime);
+          oscillator.stop(audioCtx.currentTime + 0.5);
+          
+          // Harmonic for richness
+          const osc2 = audioCtx.createOscillator();
+          const gain2 = audioCtx.createGain();
+          osc2.connect(gain2);
+          gain2.connect(audioCtx.destination);
+          osc2.frequency.value = 1320; // E6
+          osc2.type = 'sine';
+          gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc2.start(audioCtx.currentTime);
+          osc2.stop(audioCtx.currentTime + 0.3);
+        }
+      };
+    }
+  </script>
+</body>
+</html>
+

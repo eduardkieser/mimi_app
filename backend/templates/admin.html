@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ilsa.Admin - Mimi.Today</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
+</head>
+<body x-data="adminApp()">
+  <div class="container">
+    <header class="admin-header">
+      <h1>Ilsa.Admin</h1>
+      <button class="btn btn-primary" @click="openCreateModal()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add Task
+      </button>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab" :class="{ active: tab === 'templates' }" @click="tab = 'templates'">
+        Task Templates
+      </div>
+      <div class="tab" :class="{ active: tab === 'today' }" @click="tab = 'today'; loadTodaysTasks()">
+        Today's Tasks
+      </div>
+    </div>
+
+    <!-- Templates Tab -->
+    <div x-show="tab === 'templates'">
+      <div class="template-list">
+        <template x-for="template in templates" :key="template.id">
+          <div class="template-card">
+            <div class="template-info">
+              <div class="template-title" x-text="template.title"></div>
+              <div class="template-meta">
+                <span :class="template.priority === 'required' ? 'task-badge required' : 'task-badge optional'" 
+                      x-text="template.priority"></span>
+                <span x-text="capitalizeFirst(template.default_weekday)"></span>
+                <span x-text="`Order: ${template.order}`"></span>
+                <span x-show="!template.is_active" style="color: var(--color-required);">Inactive</span>
+              </div>
+            </div>
+            <div class="template-actions">
+              <button class="btn btn-secondary btn-sm" @click="openEditModal(template)">Edit</button>
+              <button class="btn btn-danger btn-sm" @click="deleteTemplate(template.id)">Delete</button>
+            </div>
+          </div>
+        </template>
+
+        <div class="empty-state" x-show="templates.length === 0">
+          <h3>No task templates yet</h3>
+          <p>Create your first recurring task!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Tasks Tab -->
+    <div x-show="tab === 'today'">
+      <div style="margin-bottom: 16px;">
+        <button class="btn btn-secondary btn-sm" @click="generateTodaysTasks()">
+          Generate Today's Tasks
+        </button>
+      </div>
+      <div class="task-list">
+        <template x-for="task in todaysTasks" :key="task.id">
+          <div 
+            class="task-card"
+            :class="{
+              'required': task.priority === 'required' && task.status !== 'completed',
+              'optional': task.priority === 'optional' && task.status !== 'completed',
+              'completed': task.status === 'completed'
+            }"
+          >
+            <div class="task-content">
+              <div class="task-checkbox">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <div class="task-info">
+                <div class="task-title" x-text="task.title"></div>
+                <div class="task-description" x-text="task.status === 'completed' ? 'Completed ✓' : 'Pending'"></div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <div class="empty-state" x-show="todaysTasks.length === 0">
+          <h3>No tasks for today</h3>
+          <p>Click "Generate Today's Tasks" to create them from templates.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" x-show="showModal" x-transition @click.self="showModal = false">
+    <div class="modal" @click.stop>
+      <h2 x-text="editingTemplate ? 'Edit Task Template' : 'Create Task Template'"></h2>
+      <form @submit.prevent="saveTemplate()">
+        <div class="form-group">
+          <label for="title">Task Title</label>
+          <input type="text" id="title" x-model="form.title" required placeholder="e.g., Clean Kitchen">
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Description (optional)</label>
+          <textarea id="description" x-model="form.description" rows="2" placeholder="Additional details..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="priority">Priority</label>
+          <select id="priority" x-model="form.priority">
+            <option value="required">Required (Red)</option>
+            <option value="optional">Optional (Yellow)</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="weekday">Default Weekday</label>
+          <select id="weekday" x-model="form.default_weekday">
+            <option value="monday">Monday</option>
+            <option value="tuesday">Tuesday</option>
+            <option value="wednesday">Wednesday</option>
+            <option value="thursday">Thursday</option>
+            <option value="friday">Friday</option>
+            <option value="saturday">Saturday</option>
+            <option value="sunday">Sunday</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="order">Display Order</label>
+          <input type="number" id="order" x-model.number="form.order" min="0" placeholder="0">
+        </div>
+        
+        <div class="form-group" x-show="editingTemplate">
+          <label>
+            <input type="checkbox" x-model="form.is_active" style="width: auto; margin-right: 8px;">
+            Active (will generate tasks)
+          </label>
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" @click="showModal = false">Cancel</button>
+          <button type="submit" class="btn btn-primary" x-text="editingTemplate ? 'Save Changes' : 'Create Task'"></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function adminApp() {
+      return {
+        tab: 'templates',
+        templates: [],
+        todaysTasks: [],
+        showModal: false,
+        editingTemplate: null,
+        form: {
+          title: '',
+          description: '',
+          priority: 'required',
+          default_weekday: 'tuesday',
+          order: 0,
+          is_active: true
+        },
+        
+        async init() {
+          await this.loadTemplates();
+        },
+        
+        async loadTemplates() {
+          try {
+            const response = await fetch('/api/admin/templates?active_only=false');
+            this.templates = await response.json();
+            this.templates.sort((a, b) => a.order - b.order);
+          } catch (err) {
+            console.error('Failed to load templates:', err);
+          }
+        },
+        
+        async loadTodaysTasks() {
+          try {
+            const response = await fetch('/api/tasks/today');
+            this.todaysTasks = await response.json();
+          } catch (err) {
+            console.error('Failed to load tasks:', err);
+          }
+        },
+        
+        async generateTodaysTasks() {
+          try {
+            const response = await fetch('/api/admin/generate/today', { method: 'POST' });
+            this.todaysTasks = await response.json();
+          } catch (err) {
+            console.error('Failed to generate tasks:', err);
+          }
+        },
+        
+        openCreateModal() {
+          this.editingTemplate = null;
+          this.form = {
+            title: '',
+            description: '',
+            priority: 'required',
+            default_weekday: 'tuesday',
+            order: this.templates.length,
+            is_active: true
+          };
+          this.showModal = true;
+        },
+        
+        openEditModal(template) {
+          this.editingTemplate = template;
+          this.form = { ...template };
+          this.showModal = true;
+        },
+        
+        async saveTemplate() {
+          try {
+            const url = this.editingTemplate 
+              ? `/api/admin/templates/${this.editingTemplate.id}`
+              : '/api/admin/templates';
+            const method = this.editingTemplate ? 'PATCH' : 'POST';
+            
+            await fetch(url, {
+              method,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.form)
+            });
+            
+            this.showModal = false;
+            await this.loadTemplates();
+          } catch (err) {
+            console.error('Failed to save template:', err);
+          }
+        },
+        
+        async deleteTemplate(id) {
+          if (!confirm('Delete this task template?')) return;
+          try {
+            await fetch(`/api/admin/templates/${id}`, { method: 'DELETE' });
+            await this.loadTemplates();
+          } catch (err) {
+            console.error('Failed to delete template:', err);
+          }
+        },
+        
+        capitalizeFirst(str) {
+          return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+      };
+    }
+  </script>
+</body>
+</html>
+

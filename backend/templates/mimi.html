@@ -32,6 +32,12 @@
       color: var(--text-primary);
       background: var(--bg-hover);
     }
+    .header .date {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
   </style>
 </head>
 <body x-data="taskApp()" @scroll.window="checkRefresh">
@@ -40,7 +46,7 @@
   
   <div class="container">
     <header class="header">
-      <p class="date" x-text="todayFormatted"></p>
+      <h1 class="date" x-text="todayFormatted"></h1>
     </header>
 
     <!-- Task list -->
@@ -154,9 +160,10 @@
             if (idx !== -1) {
               this.tasks[idx] = { ...updated, justCompleted: !wasCompleted };
               
-              // Play sound on completion
+              // Play sound and haptic on completion
               if (!wasCompleted) {
                 this.playDing();
+                this.vibrate();
                 // Remove animation class after animation
                 setTimeout(() => {
                   this.tasks[idx].justCompleted = false;
@@ -169,37 +176,44 @@
           }
         },
         
+        vibrate() {
+          // Short haptic feedback if supported
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+        },
+        
         playDing() {
-          // Generate a pleasant "ding" using Web Audio API
+          // Bright, cheerful "ding" using Web Audio API
           const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
           
-          // Main tone
+          // Main tone - brighter C7
           const oscillator = audioCtx.createOscillator();
           const gainNode = audioCtx.createGain();
           
           oscillator.connect(gainNode);
           gainNode.connect(audioCtx.destination);
           
-          oscillator.frequency.value = 880; // A5 note
+          oscillator.frequency.value = 2093; // C7 - bright and clear
           oscillator.type = 'sine';
           
-          gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+          gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
           
           oscillator.start(audioCtx.currentTime);
-          oscillator.stop(audioCtx.currentTime + 0.5);
+          oscillator.stop(audioCtx.currentTime + 0.3);
           
-          // Harmonic for richness
+          // Harmonic for sparkle - G7
           const osc2 = audioCtx.createOscillator();
           const gain2 = audioCtx.createGain();
           osc2.connect(gain2);
           gain2.connect(audioCtx.destination);
-          osc2.frequency.value = 1320; // E6
+          osc2.frequency.value = 3136; // G7
           osc2.type = 'sine';
-          gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
-          gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
           osc2.start(audioCtx.currentTime);
-          osc2.stop(audioCtx.currentTime + 0.3);
+          osc2.stop(audioCtx.currentTime + 0.2);
         }
       };
     }

@@ -86,13 +86,23 @@
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       scroll-behavior: smooth;
-      padding: 0 calc(50% - 180px);
+      padding: 0 16px;
       height: 100%;
       -webkit-overflow-scrolling: touch;
     }
 
     .day-panels::-webkit-scrollbar {
-      display: none;
+      height: 6px;
+    }
+    
+    .day-panels::-webkit-scrollbar-track {
+      background: var(--bg-card);
+      border-radius: 3px;
+    }
+    
+    .day-panels::-webkit-scrollbar-thumb {
+      background: var(--text-muted);
+      border-radius: 3px;
     }
 
     /* Day panel */
@@ -160,10 +170,13 @@
 
     .admin-task-card[draggable="true"] {
       cursor: grab;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .admin-task-card.dragging {
-      opacity: 0.5;
+      opacity: 0.4;
       cursor: grabbing;
     }
 
@@ -172,8 +185,9 @@
       margin-top: -2px;
     }
 
-    .day-panel.drag-over {
-      background: var(--bg-hover);
+    .day-panel-tasks.drag-over-panel {
+      background: rgba(122, 162, 247, 0.1);
+      border-radius: var(--radius-sm);
     }
 
     .admin-task-content {
@@ -224,36 +238,39 @@
 
     /* Insert button between tasks */
     .insert-btn {
-      height: 24px;
+      height: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-
-    .day-panel-tasks:hover .insert-btn {
-      opacity: 1;
+      position: relative;
     }
 
     .insert-btn button {
-      background: transparent;
-      border: 1px dashed var(--text-muted);
-      border-radius: 12px;
+      background: var(--bg-card);
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
       color: var(--text-muted);
-      font-size: 0.7rem;
-      padding: 2px 12px;
+      font-size: 14px;
+      font-weight: bold;
       cursor: pointer;
       transition: all 0.2s ease;
       display: flex;
       align-items: center;
-      gap: 4px;
+      justify-content: center;
+      opacity: 0.4;
     }
 
     .insert-btn button:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: rgba(122, 162, 247, 0.1);
+      background: var(--accent);
+      color: var(--bg-primary);
+      opacity: 1;
+      transform: scale(1.2);
+    }
+    
+    .insert-btn.top-insert button {
+      opacity: 0.6;
     }
 
     /* Empty day state */
@@ -453,7 +470,7 @@
     </div>
 
     <!-- Day panels -->
-    <div class="day-panels-wrapper">
+    <div class="day-panels-wrapper" @wheel.prevent="onWheel($event)">
       <div class="day-panels" id="day-panels" @scroll="onScroll">
         <template x-for="(day, dayIdx) in days" :key="day.dateStr">
           <div class="day-panel" :id="'panel-' + dayIdx">
@@ -470,31 +487,35 @@
               @drop="onDrop($event, day.dateStr)"
             >
               <!-- Insert at top -->
-              <div class="insert-btn">
-                <button @click="openCreateModal(day.dateStr, 0)">
-                  <span>+</span> Add task
-                </button>
+              <div class="insert-btn top-insert">
+                <button @click="openCreateModal(day.dateStr, 0)" title="Add task">+</button>
               </div>
 
               <template x-for="(task, taskIdx) in getTasksForDay(day.dateStr)" :key="task.id">
-                <div
-                  class="admin-task-card"
-                  :class="[task.priority, { 'dragging': draggedTask?.id === task.id }]"
-                  :style="`min-height: ${Math.max(40, task.expected_minutes)}px`"
-                  draggable="true"
-                  :data-task-id="task.id"
-                  :data-order="task.order"
-                  @dragstart="onDragStart($event, task, day.dateStr)"
-                  @dragend="onDragEnd($event)"
-                  @dragover.prevent="onTaskDragOver($event, task)"
-                  @dragleave="onTaskDragLeave($event)"
-                >
-                  <div class="admin-task-content">
-                    <span class="admin-task-title" x-text="task.title"></span>
-                    <div class="admin-task-actions">
-                      <button class="admin-task-btn edit" @click.stop="openEditModal(task)" title="Edit">✎</button>
-                      <button class="admin-task-btn delete" @click.stop="deleteTask(task.id)" title="Delete">×</button>
+                <div>
+                  <div
+                    class="admin-task-card"
+                    :class="[task.priority, { 'dragging': draggedTask?.id === task.id }]"
+                    :style="`min-height: ${Math.max(40, task.expected_minutes)}px`"
+                    draggable="true"
+                    :data-task-id="task.id"
+                    :data-order="task.order"
+                    @dragstart="onDragStart($event, task, day.dateStr)"
+                    @dragend="onDragEnd($event)"
+                    @dragover.prevent="onTaskDragOver($event, task)"
+                    @dragleave="onTaskDragLeave($event)"
+                  >
+                    <div class="admin-task-content">
+                      <span class="admin-task-title" x-text="task.title"></span>
+                      <div class="admin-task-actions">
+                        <button class="admin-task-btn edit" @click.stop="openEditModal(task)" title="Edit">✎</button>
+                        <button class="admin-task-btn delete" @click.stop="deleteTask(task.id)" title="Delete">×</button>
+                      </div>
                     </div>
+                  </div>
+                  <!-- Insert after this task -->
+                  <div class="insert-btn">
+                    <button @click="openCreateModal(day.dateStr, taskIdx + 1)" title="Insert task">+</button>
                   </div>
                 </div>
               </template>
@@ -505,8 +526,7 @@
                 x-show="getTasksForDay(day.dateStr).length === 0"
                 @dragover.prevent
               >
-                <p x-text="draggedTask ? 'Drop here' : 'No tasks scheduled'"></p>
-                <button class="btn btn-primary" @click="openCreateModal(day.dateStr, 0)" x-show="!draggedTask">Add first task</button>
+                <p x-text="draggedTask ? 'Drop here' : 'No tasks yet'"></p>
               </div>
             </div>
           </div>
@@ -678,6 +698,12 @@
           });
           
           this.selectedDayIdx = closestIdx;
+        },
+        
+        onWheel(e) {
+          // Convert vertical scroll to horizontal
+          const container = document.getElementById('day-panels');
+          container.scrollLeft += e.deltaY * 2;
         },
 
         openCreateModal(dateStr, order) {

@@ -9,8 +9,35 @@
   <link rel="stylesheet" href="/static/styles.css">
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
+  <script>
+    // Set theme before page renders to prevent flash
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('mimi-theme') || 'dark');
+  </script>
+  <style>
+    .theme-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: var(--bg-card);
+      border: none;
+      border-radius: 20px;
+      padding: 6px 12px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+      z-index: 50;
+      transition: all 0.2s ease;
+    }
+    .theme-toggle:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+  </style>
 </head>
 <body x-data="taskApp()" @scroll.window="checkRefresh">
+  <!-- Theme toggle -->
+  <button class="theme-toggle" @click="toggleTheme()" x-text="theme === 'dark' ? '◐ Solid' : '◑ Dark'"></button>
+  
   <div class="container">
     <header class="header">
       <h1>Mimi.Today</h1>
@@ -85,6 +112,7 @@
     function taskApp() {
       return {
         tasks: [],
+        theme: localStorage.getItem('mimi-theme') || 'dark',
         
         get completedCount() {
           return this.tasks.filter(t => t.status === 'completed').length;
@@ -110,6 +138,12 @@
             month: 'long', 
             day: 'numeric' 
           });
+        },
+        
+        toggleTheme() {
+          this.theme = this.theme === 'dark' ? 'solid' : 'dark';
+          localStorage.setItem('mimi-theme', this.theme);
+          document.documentElement.setAttribute('data-theme', this.theme);
         },
         
         refreshCooldown: false,

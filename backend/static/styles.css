@@ -1,6 +1,6 @@
 /* Mimi.Today - Task List Styles */
 
-:root {
+:root, [data-theme="dark"] {
   /* Color palette - warm, friendly, gamified */
   --bg-primary: #1a1b26;
   --bg-card: #24283b;
@@ -26,6 +26,33 @@
   /* Sizing */
   --radius: 16px;
   --radius-sm: 8px;
+  
+  /* Theme-specific: border style (default) */
+  --card-style: border;
+}
+
+/* Solid theme - filled cards with white text */
+[data-theme="solid"] {
+  --bg-primary: #0f0f14;
+  --bg-card: #1a1a24;
+  --bg-hover: #252532;
+  
+  --text-primary: #e8e8ed;
+  --text-secondary: #a0a0b0;
+  --text-muted: #606070;
+  
+  --color-required: #dc3545;
+  --color-optional: #ffc107;
+  --color-completed: #28a745;
+  
+  --color-required-glow: rgba(220, 53, 69, 0.4);
+  --color-optional-glow: rgba(255, 193, 7, 0.4);
+  --color-completed-glow: rgba(40, 167, 69, 0.5);
+  
+  --accent: #6c8aec;
+  --accent-hover: #8aa4f4;
+  
+  --card-style: solid;
 }
 
 * {
@@ -166,6 +193,53 @@ body {
 
 .task-card.completed:hover {
   box-shadow: 0 0 30px var(--color-completed-glow);
+}
+
+/* Solid theme card styles */
+[data-theme="solid"] .task-card {
+  border: none;
+}
+
+[data-theme="solid"] .task-card::before {
+  display: none;
+}
+
+[data-theme="solid"] .task-card.required:not(.completed) {
+  background: var(--color-required);
+  color: white;
+}
+
+[data-theme="solid"] .task-card.optional:not(.completed) {
+  background: var(--color-optional);
+  color: #1a1a24;
+}
+
+[data-theme="solid"] .task-card.completed {
+  background: var(--color-completed);
+  color: white;
+  border: none;
+}
+
+[data-theme="solid"] .task-card .task-title {
+  color: inherit;
+}
+
+[data-theme="solid"] .task-card .task-badge {
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+}
+
+[data-theme="solid"] .task-card .task-checkbox {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="solid"] .task-card.optional .task-checkbox {
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="solid"] .task-card.completed .task-checkbox {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 /* Task content */

@@ -83,24 +83,10 @@ body {
 }
 
 .header h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent), var(--color-optional));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
   margin-bottom: 8px;
-}
-
-.header .subtitle {
-  color: var(--text-secondary);
-  font-size: 1.1rem;
-}
-
-.header .date {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  margin-top: 4px;
 }
 
 /* Progress bar */
@@ -408,11 +394,8 @@ body {
 }
 
 .admin-header h1 {
-  font-size: 2rem;
-  background: linear-gradient(135deg, var(--accent), #bb9af7);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 1.8rem;
+  color: var(--text-primary);
 }
 
 /* Buttons */

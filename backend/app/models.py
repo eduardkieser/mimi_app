@@ -14,25 +14,22 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"
 
 
-class Weekday(str, Enum):
-    MONDAY = "monday"
-    TUESDAY = "tuesday"
-    WEDNESDAY = "wednesday"
-    THURSDAY = "thursday"
-    FRIDAY = "friday"
-    SATURDAY = "saturday"
-    SUNDAY = "sunday"
+class RepeatType(str, Enum):
+    NONE = "none"
+    DAILY = "daily"      # All work days (Mon-Fri)
+    WEEKLY = "weekly"    # Specific days of week
+    MONTHLY = "monthly"  # Same day of month
 
 
 # TaskTemplate: Defines recurring tasks (managed by Ilsa)
 class TaskTemplateBase(SQLModel):
     title: str = Field(index=True)
     description: Optional[str] = None
-    priority: TaskPriority = TaskPriority.OPTIONAL  # Optional by default
-    is_recurring: bool = Field(default=True)  # Repeat every week
-    default_weekday: Weekday = Weekday.TUESDAY
-    order: int = Field(default=0)  # Display order
-    expected_minutes: int = Field(default=30)  # Time estimate in minutes
+    priority: TaskPriority = TaskPriority.OPTIONAL
+    repeat_type: RepeatType = Field(default=RepeatType.NONE)
+    weekdays: str = Field(default="")  # Comma-separated: "0,2,4" for Mon,Wed,Fri
+    order: int = Field(default=0)
+    expected_minutes: int = Field(default=30)
     is_active: bool = Field(default=True)
 
 
@@ -59,8 +56,8 @@ class TaskTemplateUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
     priority: Optional[TaskPriority] = None
-    is_recurring: Optional[bool] = None
-    default_weekday: Optional[Weekday] = None
+    repeat_type: Optional[RepeatType] = None
+    weekdays: Optional[str] = None
     order: Optional[int] = None
     expected_minutes: Optional[int] = None
     is_active: Optional[bool] = None

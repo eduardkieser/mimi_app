@@ -1,29 +1,32 @@
 from sqlmodel import Session, select
 from datetime import date, datetime
 from app.models import (
-    Task, TaskTemplate, TaskStatus, TaskPriority, Weekday,
+    Task, TaskTemplate, TaskStatus, TaskPriority, RepeatType,
     TaskTemplateCreate, TaskTemplateUpdate, TaskUpdate
 )
 
 
-WEEKDAY_MAP = {
-    Weekday.MONDAY: 0,
-    Weekday.TUESDAY: 1,
-    Weekday.WEDNESDAY: 2,
-    Weekday.THURSDAY: 3,
-    Weekday.FRIDAY: 4,
-    Weekday.SATURDAY: 5,
-    Weekday.SUNDAY: 6,
-}
-
-
-def get_weekday_enum(d: date) -> Weekday:
-    """Convert a date to its Weekday enum."""
-    weekday_num = d.weekday()
-    for wd, num in WEEKDAY_MAP.items():
-        if num == weekday_num:
-            return wd
-    return Weekday.MONDAY
+def template_matches_date(template: TaskTemplate, target_date: date) -> bool:
+    """Check if a template should generate a task for the given date."""
+    weekday = target_date.weekday()  # 0=Mon, 6=Sun
+    
+    if template.repeat_type == RepeatType.DAILY:
+        # Daily = all weekdays (Mon-Fri)
+        return weekday < 5
+    
+    elif template.repeat_type == RepeatType.WEEKLY:
+        # Check if this weekday is in the template's weekdays list
+        if not template.weekdays:
+            return False
+        weekday_list = [int(d) for d in template.weekdays.split(",") if d]
+        return weekday in weekday_list
+    
+    elif template.repeat_type == RepeatType.MONTHLY:
+        # Same day of month as when template was created
+        # For now, just use the day of month from created_at
+        return target_date.day == template.created_at.day
+    
+    return False
 
 
 # ============ Task Template Operations (Admin) ============
@@ -94,27 +97,29 @@ def get_todays_tasks(session: Session) -> list[Task]:
 
 def generate_tasks_for_date(session: Session, target_date: date) -> list[Task]:
     """
-    Generate tasks for a given date based on active templates 
-    that match the weekday. Idempotent - won't duplicate.
+    Generate tasks for a given date based on active templates.
+    Idempotent - won't duplicate tasks from the same template.
     """
-    # Check if tasks already exist for this date
+    # Get existing tasks for this date
     existing = get_tasks_for_date(session, target_date)
-    if existing:
-        return existing
+    existing_template_ids = {t.template_id for t in existing if t.template_id}
     
-    # Get templates for this weekday
-    target_weekday = get_weekday_enum(target_date)
+    # Get all active templates
     statement = (
         select(TaskTemplate)
         .where(TaskTemplate.is_active == True)
-        .where(TaskTemplate.default_weekday == target_weekday)
         .order_by(TaskTemplate.order)
     )
     templates = session.exec(statement).all()
     
-    # Create tasks from templates
-    tasks = []
+    # Create tasks from matching templates that don't already exist
+    new_tasks = []
     for template in templates:
+        if template.id in existing_template_ids:
+            continue  # Already have this task
+        if not template_matches_date(template, target_date):
+            continue  # Doesn't match this date
+        
         task = Task(
             title=template.title,
             description=template.description,
@@ -125,13 +130,14 @@ def generate_tasks_for_date(session: Session, target_date: date) -> list[Task]:
             template_id=template.id,
         )
         session.add(task)
-        tasks.append(task)
+        new_tasks.append(task)
     
-    session.commit()
-    for task in tasks:
-        session.refresh(task)
+    if new_tasks:
+        session.commit()
+        for task in new_tasks:
+            session.refresh(task)
     
-    return tasks
+    return existing + new_tasks
 
 
 def complete_task(session: Session, task_id: int) -> Task | None:

@@ -443,6 +443,40 @@
       font-weight: 600;
     }
 
+    .weekly-option {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .day-selector {
+      display: flex;
+      gap: 4px;
+      margin-left: 26px;
+    }
+
+    .day-btn {
+      padding: 6px 10px;
+      border: 1px solid var(--text-muted);
+      background: var(--bg-primary);
+      color: var(--text-muted);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s ease;
+    }
+
+    .day-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .day-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg-primary);
+    }
+
     .modal-actions {
       display: flex;
       gap: 12px;
@@ -603,16 +637,25 @@
           <div class="repeat-options">
             <label class="checkbox-row">
               <input type="checkbox" x-model="form.repeat_daily">
-              <span>Daily</span>
+              <span>Daily (all work days)</span>
             </label>
-            <label class="checkbox-row">
-              <input type="checkbox" x-model="form.repeat_weekly">
-              <span>Every</span>
-              <button type="button" class="mini-btn" @click="form.weekly_interval = Math.max(1, form.weekly_interval - 1)">−</button>
-              <span class="interval-value" x-text="form.weekly_interval"></span>
-              <button type="button" class="mini-btn" @click="form.weekly_interval++">+</button>
-              <span>week<span x-show="form.weekly_interval > 1">s</span></span>
-            </label>
+            <div class="weekly-option">
+              <label class="checkbox-row">
+                <input type="checkbox" x-model="form.repeat_weekly">
+                <span>Weekly on:</span>
+              </label>
+              <div class="day-selector" x-show="form.repeat_weekly">
+                <template x-for="(day, idx) in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']" :key="day">
+                  <button 
+                    type="button" 
+                    class="day-btn"
+                    :class="{ active: form.weekly_days.includes(idx) }"
+                    @click="toggleWeeklyDay(idx)"
+                    x-text="day"
+                  ></button>
+                </template>
+              </div>
+            </div>
             <label class="checkbox-row">
               <input type="checkbox" x-model="form.repeat_monthly">
               <span>Monthly</span>
@@ -653,8 +696,8 @@
           priority: 'optional',
           expected_minutes: 30,
           repeat_daily: false,
-          repeat_weekly: true,
-          weekly_interval: 1,
+          repeat_weekly: false,
+          weekly_days: [],  // 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri
           repeat_monthly: false
         },
         
@@ -703,8 +746,9 @@
         async loadAllTasks() {
           for (const day of this.days) {
             try {
+              // This endpoint auto-generates tasks from templates
               const response = await fetch(`/api/tasks/date/${day.dateStr}`);
-              const tasks = await response.json();
+              let tasks = await response.json();
               tasks.sort((a, b) => a.order - b.order);
               this.tasks[day.dateStr] = tasks;
             } catch (err) {
@@ -766,17 +810,30 @@
           this.editingTask = null;
           this.insertAtDate = dateStr;
           this.insertAtOrder = order;
+          // Get day of week for this date (0=Mon for our array)
+          const d = new Date(dateStr);
+          const dayIdx = (d.getDay() + 6) % 7; // Convert Sun=0 to Mon=0
           this.form = {
             title: '',
             description: '',
             priority: 'optional',
             expected_minutes: 30,
             repeat_daily: false,
-            repeat_weekly: true,
-            weekly_interval: 1,
+            repeat_weekly: false,
+            weekly_days: dayIdx < 5 ? [dayIdx] : [], // Default to current day if weekday
             repeat_monthly: false
           };
           this.showModal = true;
+        },
+        
+        toggleWeeklyDay(idx) {
+          const i = this.form.weekly_days.indexOf(idx);
+          if (i >= 0) {
+            this.form.weekly_days.splice(i, 1);
+          } else {
+            this.form.weekly_days.push(idx);
+            this.form.weekly_days.sort();
+          }
         },
 
         openEditModal(task) {
@@ -788,7 +845,7 @@
             expected_minutes: task.expected_minutes || 30,
             repeat_daily: false,
             repeat_weekly: false,
-            weekly_interval: 1,
+            weekly_days: [],
             repeat_monthly: false
           };
           this.showModal = true;
@@ -812,41 +869,71 @@
               console.error('Failed to update task:', err);
             }
           } else {
-            // Create new task
-            // First, shift orders of tasks at or after insert position
-            const dayTasks = this.getTasksForDay(this.insertAtDate);
-            for (const t of dayTasks) {
-              if (t.order >= this.insertAtOrder) {
-                t.order += 1;
-              }
-            }
-            // Save the new orders
-            if (dayTasks.length > 0) {
-              await fetch('/api/admin/tasks/reorder', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dayTasks.map(t => ({ id: t.id, order: t.order })))
-              });
+            // Determine repeat type
+            let repeatType = 'none';
+            let weekdays = '';
+            
+            if (this.form.repeat_daily) {
+              repeatType = 'daily';
+            } else if (this.form.repeat_weekly && this.form.weekly_days.length > 0) {
+              repeatType = 'weekly';
+              weekdays = this.form.weekly_days.join(',');
+            } else if (this.form.repeat_monthly) {
+              repeatType = 'monthly';
             }
             
-            // Create the task
-            try {
-              await fetch('/api/admin/tasks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  title: this.form.title,
-                  description: this.form.description || null,
-                  priority: this.form.priority,
-                  expected_minutes: this.form.expected_minutes,
-                  order: this.insertAtOrder,
-                  scheduled_date: this.insertAtDate
-                })
-              });
-
-              // TODO: If is_recurring, also create a template
-            } catch (err) {
-              console.error('Failed to create task:', err);
+            // If repeating, create a template
+            if (repeatType !== 'none') {
+              try {
+                await fetch('/api/admin/templates', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    title: this.form.title,
+                    description: this.form.description || null,
+                    priority: this.form.priority,
+                    expected_minutes: this.form.expected_minutes,
+                    order: this.insertAtOrder,
+                    repeat_type: repeatType,
+                    weekdays: weekdays
+                  })
+                });
+                // Tasks will be auto-generated when viewing dates
+              } catch (err) {
+                console.error('Failed to create template:', err);
+              }
+            } else {
+              // Non-repeating: create single task
+              const dayTasks = this.getTasksForDay(this.insertAtDate);
+              for (const t of dayTasks) {
+                if (t.order >= this.insertAtOrder) {
+                  t.order += 1;
+                }
+              }
+              if (dayTasks.length > 0) {
+                await fetch('/api/admin/tasks/reorder', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(dayTasks.map(t => ({ id: t.id, order: t.order })))
+                });
+              }
+              
+              try {
+                await fetch('/api/admin/tasks', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    title: this.form.title,
+                    description: this.form.description || null,
+                    priority: this.form.priority,
+                    expected_minutes: this.form.expected_minutes,
+                    order: this.insertAtOrder,
+                    scheduled_date: this.insertAtDate
+                  })
+                });
+              } catch (err) {
+                console.error('Failed to create task:', err);
+              }
             }
           }
 

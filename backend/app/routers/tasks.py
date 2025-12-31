@@ -23,8 +23,8 @@ def get_todays_tasks(session: Session = Depends(get_session)):
 
 @router.get("/date/{target_date}", response_model=list[TaskRead])
 def get_tasks_for_date(target_date: date, session: Session = Depends(get_session)):
-    """Get tasks for a specific date."""
-    return task_service.get_tasks_for_date(session, target_date)
+    """Get tasks for a specific date, generating from templates if needed."""
+    return task_service.generate_tasks_for_date(session, target_date)
 
 
 @router.post("/{task_id}/complete", response_model=TaskRead)

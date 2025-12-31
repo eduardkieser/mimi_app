@@ -5,7 +5,7 @@ A task list app for household cleaning, designed to run on a local network.
 ## Overview
 
 - **Mimi** (cleaner) views and completes daily tasks
-- **Ilsa** (admin) manages task templates and schedules
+- **Ilse** (admin) manages task templates and schedules
 
 ## Running the App
 

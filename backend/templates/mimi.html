@@ -32,6 +32,54 @@
       color: var(--text-primary);
       background: var(--bg-hover);
     }
+    .date-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .nav-btn {
+      background: var(--bg-card);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .task-card.readonly {
+      cursor: default;
+      opacity: 0.85;
+    }
+    .task-card.readonly:hover {
+      transform: none;
+    }
+    .date-label {
+      text-align: center;
+      min-width: 200px;
+    }
+    .date-label h1 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    .date-label .today-badge {
+      font-size: 0.75rem;
+      color: var(--color-completed);
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body x-data="taskApp()" @scroll.window="checkRefresh">
@@ -40,7 +88,14 @@
   
   <div class="container">
     <header class="header">
-      <h1 class="date" x-text="todayFormatted"></h1>
+      <div class="date-nav">
+        <button class="nav-btn" @click="prevDay()" title="Previous day">&larr;</button>
+        <div class="date-label">
+          <h1 x-text="displayDateFormatted"></h1>
+          <div class="today-badge" x-show="isToday">Today</div>
+        </div>
+        <button class="nav-btn" @click="nextDay()" :disabled="isToday" title="Next day">&rarr;</button>
+      </div>
     </header>
 
     <!-- Task list -->
@@ -52,7 +107,8 @@
             'required': task.priority === 'required' && task.status !== 'completed',
             'optional': task.priority === 'optional' && task.status !== 'completed',
             'completed': task.status === 'completed',
-            'just-completed': task.justCompleted
+            'just-completed': task.justCompleted,
+            'readonly': !isToday
           }"
           :style="`min-height: ${Math.max(60, task.expected_minutes * 1.5)}px`"
           @click="toggleTask(task)"
@@ -81,7 +137,7 @@
 
       <!-- Empty state -->
       <div class="empty-state" x-show="tasks.length === 0">
-        <p>No tasks for today</p>
+        <p x-text="isToday ? 'No tasks for today' : 'No tasks for this day'"></p>
       </div>
     </div>
   </div>
@@ -92,14 +148,40 @@
         tasks: [],
         theme: localStorage.getItem('mimi-theme') || 'dark',
         audioCtx: null,
+        displayDate: new Date(),
         
-        get todayFormatted() {
-          return new Date().toLocaleDateString('en-US', { 
+        get displayDateFormatted() {
+          return this.displayDate.toLocaleDateString('en-US', { 
             weekday: 'long', 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric' 
           });
+        },
+        
+        get isToday() {
+          const today = new Date();
+          return this.displayDate.toDateString() === today.toDateString();
+        },
+        
+        get displayDateStr() {
+          // Format as YYYY-MM-DD for API
+          return this.displayDate.toISOString().split('T')[0];
+        },
+        
+        prevDay() {
+          const newDate = new Date(this.displayDate);
+          newDate.setDate(newDate.getDate() - 1);
+          this.displayDate = newDate;
+          this.loadTasks();
+        },
+        
+        nextDay() {
+          if (this.isToday) return; // Can't go beyond today
+          const newDate = new Date(this.displayDate);
+          newDate.setDate(newDate.getDate() + 1);
+          this.displayDate = newDate;
+          this.loadTasks();
         },
         
         toggleTheme() {
@@ -131,9 +213,9 @@
         
         async loadTasks() {
           try {
-            const response = await fetch('/api/tasks/today');
+            const response = await fetch(`/api/tasks/date/${this.displayDateStr}`);
             this.tasks = await response.json();
-            // Keep Ilsa's order - only sort by order field
+            // Keep Ilse's order - only sort by order field
             this.tasks.sort((a, b) => a.order - b.order);
           } catch (err) {
             console.error('Failed to load tasks:', err);
@@ -141,6 +223,9 @@
         },
         
         async toggleTask(task) {
+          // Only allow toggling on today's tasks
+          if (!this.isToday) return;
+          
           const wasCompleted = task.status === 'completed';
           const endpoint = wasCompleted 
             ? `/api/tasks/${task.id}/uncomplete`
@@ -164,7 +249,7 @@
                   this.tasks[idx].justCompleted = false;
                 }, 500);
               }
-              // Don't re-sort - keep Ilsa's order
+              // Don't re-sort - keep Ilse's order
             }
           } catch (err) {
             console.error('Failed to toggle task:', err);

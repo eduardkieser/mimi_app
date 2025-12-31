@@ -55,7 +55,7 @@ if templates_path.exists():
 
     @app.get("/admin")
     async def admin_page(request: Request):
-        """Ilsa's admin view (HTMX)."""
+        """Ilse's admin view (HTMX)."""
         return templates.TemplateResponse("admin.html", {"request": request})
 
 

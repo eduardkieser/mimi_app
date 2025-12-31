@@ -1,5 +1,5 @@
 """
-Admin routes for Ilsa (the admin).
+Admin routes for Ilse (the admin).
 Full CRUD on task templates, manual task generation.
 """
 from fastapi import APIRouter, Depends, HTTPException

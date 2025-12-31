@@ -21,7 +21,7 @@ class RepeatType(str, Enum):
     MONTHLY = "monthly"  # Same day of month
 
 
-# TaskTemplate: Defines recurring tasks (managed by Ilsa)
+# TaskTemplate: Defines recurring tasks (managed by Ilse)
 class TaskTemplateBase(SQLModel):
     title: str = Field(index=True)
     description: Optional[str] = None

@@ -24,7 +24,7 @@ Living document - prune as decisions solidify or become obsolete.
 
 ---
 
-## Admin Panel (Ilsa View)
+## Admin Panel (Ilse View)
 
 ### Keep
 - 7-day horizontal scroll (today + 6 days)
@@ -62,6 +62,6 @@ Living document - prune as decisions solidify or become obsolete.
 ## Open Questions
 
 - [ ] Flutter version - still planned?
-- [ ] Local DNS setup (mimi.today, ilsa.admin)
+- [ ] Local DNS setup (mimi.today, Ilse.admin)
 - [ ] Recurring task generation - automatic or manual trigger?
 

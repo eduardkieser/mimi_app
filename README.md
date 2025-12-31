@@ -14,7 +14,7 @@ A task list app for household cleaning, designed to run on a local network.
 ```bash
 cd backend
 source venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
 ### Run Detached (Background)
@@ -24,7 +24,7 @@ To run the server so it persists after closing the terminal:
 ```bash
 cd /Users/eduard/workspace/mimi_app/backend
 source venv/bin/activate
-nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
+nohup uvicorn app.main:app --host 0.0.0.0 --port 8001 > server.log 2>&1 &
 echo $! > server.pid
 ```
 
@@ -45,8 +45,8 @@ Once running, access from any device on your network:
 
 | View | URL |
 |------|-----|
-| Mimi (tasks) | http://YOUR_IP:8000/ |
-| Admin | http://YOUR_IP:8000/admin |
+| Mimi (tasks) | http://YOUR_IP:8001/ |
+| Admin | http://YOUR_IP:8001/admin |
 
 Find your IP with: `ipconfig getifaddr en0`
 
@@ -62,7 +62,7 @@ cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
 ## License

@@ -77,6 +77,7 @@ class TaskBase(SQLModel):
 class Task(TaskBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     template_id: Optional[int] = Field(default=None, foreign_key="tasktemplate.id")
+    is_snapshot: bool = Field(default=False)  # True = historical record, immutable
     created_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
 
@@ -84,9 +85,17 @@ class Task(TaskBase, table=True):
     template: Optional[TaskTemplate] = Relationship(back_populates="tasks")
 
 
+class RepeatInfo(SQLModel):
+    """Nested info about repeat pattern for API responses."""
+    type: RepeatType
+    days: list[str] = []  # e.g. ["Mon", "Thu"]
+
+
 class TaskRead(TaskBase):
     id: int
     template_id: Optional[int]
+    is_snapshot: bool = False
+    repeat_info: Optional[RepeatInfo] = None
     created_at: datetime
     completed_at: Optional[datetime]
 

@@ -113,26 +113,30 @@ def delete_task(task_id: int, session: Session = Depends(get_session)):
 
 @router.post("/tasks/reorder")
 def reorder_tasks(task_orders: list[dict], session: Session = Depends(get_session)):
-    """Update order of multiple tasks. Expects [{id: 1, order: 0}, ...]"""
+    """
+    Update order of multiple tasks. Expects [{id: 1, order: 0}, ...]
+    For template-based tasks, also updates the template's order.
+    """
     for item in task_orders:
-        task = task_service.get_task(session, item["id"])
-        if task:
-            task.order = item["order"]
-            session.add(task)
-    session.commit()
+        task_service.reorder_task(session, item["id"], item["order"])
     return {"ok": True}
 
 
 @router.post("/tasks/{task_id}/move")
 def move_task(task_id: int, target_date: date, order: int, session: Session = Depends(get_session)):
-    """Move a task to a different date and/or order."""
-    task = task_service.get_task(session, task_id)
+    """
+    Move a task to a different date and/or order.
+    For template-based tasks, updates the template's weekdays.
+    """
+    task = task_service.move_task_to_date(session, task_id, target_date, order)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    task.scheduled_date = target_date
-    task.order = order
-    session.add(task)
-    session.commit()
-    session.refresh(task)
     return task
+
+
+@router.post("/snapshot/{target_date}")
+def create_snapshot(target_date: date, session: Session = Depends(get_session)):
+    """Create end-of-day snapshot for a date, preserving task states."""
+    tasks = task_service.create_daily_snapshot(session, target_date)
+    return {"ok": True, "snapshot_count": len(tasks)}
 

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Theme Test - Mimi.Today</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script>
+    // Set initial theme
+    document.documentElement.setAttribute('data-theme', 'dark');
+  </script>
+  <style>
+    body {
+      font-family: 'DM Sans', sans-serif;
+      padding: 20px;
+      /* Use CSS variable so themes work */
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background 0.3s, color 0.3s;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .instructions {
+      text-align: center;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    .theme-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .theme-btn {
+      padding: 10px 20px;
+      border: 2px solid var(--text-muted);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    .theme-btn:hover {
+      border-color: var(--accent);
+    }
+    .theme-btn.active {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+    .preview-container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      background: var(--bg-primary);
+      border-radius: 16px;
+      transition: background 0.3s;
+    }
+    .preview-container h2 {
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .task-card {
+      margin-bottom: 12px;
+    }
+    .debug-panel {
+      margin-top: 30px;
+      padding: 20px;
+      background: var(--bg-card);
+      border-radius: 12px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .debug-panel h3 {
+      margin-bottom: 12px;
+      color: var(--accent);
+    }
+    .debug-panel pre {
+      background: var(--bg-hover);
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+    }
+    .var-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .var-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: var(--bg-hover);
+      border-radius: 6px;
+    }
+    .var-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 1px solid #333;
+    }
+    .var-name {
+      font-size: 0.75rem;
+      color: #888;
+    }
+    .var-value {
+      font-size: 0.8rem;
+      color: #fff;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎨 Theme Test Page</h1>
+  <p class="instructions">Click a theme to test it. The preview and debug info will update.</p>
+  
+  <div class="theme-buttons">
+    <button class="theme-btn" data-theme="dark" onclick="switchTheme('dark')">Dark</button>
+    <button class="theme-btn" data-theme="solid" onclick="switchTheme('solid')">Solid</button>
+    <button class="theme-btn" data-theme="sunset" onclick="switchTheme('sunset')">Sunset</button>
+    <button class="theme-btn" data-theme="ocean" onclick="switchTheme('ocean')">Ocean</button>
+    <button class="theme-btn" data-theme="neon" onclick="switchTheme('neon')">Neon</button>
+    <button class="theme-btn" data-theme="paper" onclick="switchTheme('paper')">Paper</button>
+  </div>
+
+  <div class="preview-container" id="preview">
+    <h2 id="theme-name">Select a theme</h2>
+    <div class="task-card required" style="padding: 16px; border-radius: 12px;">
+      <div class="task-content">
+        <div class="task-checkbox"></div>
+        <div class="task-info">
+          <div class="task-title">Required Task</div>
+        </div>
+      </div>
+    </div>
+    <div class="task-card optional" style="padding: 16px; border-radius: 12px;">
+      <div class="task-content">
+        <div class="task-checkbox"></div>
+        <div class="task-info">
+          <div class="task-title">Optional Task</div>
+        </div>
+      </div>
+    </div>
+    <div class="task-card completed" style="padding: 16px; border-radius: 12px;">
+      <div class="task-content">
+        <div class="task-checkbox">✓</div>
+        <div class="task-info">
+          <div class="task-title">Completed Task</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="debug-panel">
+    <h3>🔍 CSS Variables (computed)</h3>
+    <div class="var-grid" id="var-grid"></div>
+    
+    <h3 style="margin-top: 20px;">📋 Debug Log</h3>
+    <pre id="debug-log">Click a theme to see debug info...</pre>
+  </div>
+
+  <script>
+    let currentTheme = null;
+
+    function switchTheme(theme) {
+      currentTheme = theme;
+      
+      // Set theme on html element (how the app does it)
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      // Update button states
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === theme);
+      });
+      
+      // Update preview title
+      document.getElementById('theme-name').textContent = theme.charAt(0).toUpperCase() + theme.slice(1) + ' Theme';
+      
+      // Update debug info
+      updateDebugInfo(theme);
+    }
+
+    function updateDebugInfo(theme) {
+      const container = document.getElementById('preview');
+      const styles = getComputedStyle(container);
+      
+      const vars = [
+        '--bg-primary',
+        '--bg-card',
+        '--bg-hover',
+        '--text-primary',
+        '--text-muted',
+        '--color-required',
+        '--color-optional',
+        '--color-completed',
+        '--accent'
+      ];
+      
+      // Update variable grid
+      const grid = document.getElementById('var-grid');
+      grid.innerHTML = vars.map(v => {
+        const value = styles.getPropertyValue(v).trim();
+        return `
+          <div class="var-item">
+            <div class="var-swatch" style="background: ${value || '#000'}"></div>
+            <div>
+              <div class="var-name">${v}</div>
+              <div class="var-value">${value || '(not set)'}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // Update debug log
+      const log = document.getElementById('debug-log');
+      let logText = `Theme: ${theme}\n`;
+      logText += `data-theme attribute: ${document.documentElement.getAttribute('data-theme')}\n\n`;
+      
+      // Check CSS rules
+      logText += `CSS Rules Check:\n`;
+      let ruleCount = 0;
+      try {
+        for (let sheet of document.styleSheets) {
+          try {
+            for (let rule of sheet.cssRules) {
+              if (rule.selectorText && rule.selectorText.includes(`[data-theme="${theme}"]`)) {
+                ruleCount++;
+              }
+            }
+          } catch (e) {
+            // CORS issue with external sheets
+          }
+        }
+      } catch (e) {
+        logText += `  Error: ${e.message}\n`;
+      }
+      logText += `  Found ${ruleCount} CSS rules for [data-theme="${theme}"]\n\n`;
+      
+      // Check computed backgrounds
+      const cards = container.querySelectorAll('.task-card');
+      logText += `Computed Backgrounds:\n`;
+      cards.forEach((card, i) => {
+        const cardStyles = getComputedStyle(card);
+        const bg = cardStyles.backgroundColor;
+        const classes = card.className;
+        logText += `  ${classes}: ${bg}\n`;
+      });
+      
+      log.textContent = logText;
+    }
+
+    // Start with dark theme
+    switchTheme('dark');
+  </script>
+</body>
+</html>
+

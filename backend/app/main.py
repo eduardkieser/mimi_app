@@ -58,6 +58,11 @@ if templates_path.exists():
         """Ilse's admin view (HTMX)."""
         return templates.TemplateResponse("admin.html", {"request": request})
 
+    @app.get("/theme-test")
+    async def theme_test_page(request: Request):
+        """Theme testing/debugging page."""
+        return templates.TemplateResponse("theme_test.html", {"request": request})
+
 
 @app.get("/health")
 def health_check():

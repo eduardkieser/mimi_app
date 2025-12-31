@@ -856,9 +856,15 @@
         },
         
         setTheme(newTheme) {
+          console.log('Setting theme to:', newTheme);
           this.theme = newTheme;
           localStorage.setItem('admin-theme', newTheme);
           document.documentElement.setAttribute('data-theme', newTheme);
+          
+          // Debug: log computed styles
+          const computed = getComputedStyle(document.body);
+          console.log('--bg-primary:', computed.getPropertyValue('--bg-primary'));
+          console.log('body background:', computed.backgroundColor);
         },
 
         // Drag and drop state

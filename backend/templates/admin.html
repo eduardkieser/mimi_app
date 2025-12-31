@@ -459,7 +459,7 @@
       <template x-for="(day, idx) in days" :key="day.dateStr">
         <div 
           class="day-dot"
-          :class="{ active: selectedDayIdx === idx, today: idx === 0 }"
+          :class="{ active: selectedDayIdx === idx, today: day.isToday }"
           @click="scrollToDay(idx)"
           x-text="day.shortName"
         ></div>
@@ -617,28 +617,38 @@
         async init() {
           this.buildDays();
           await this.loadAllTasks();
-          // Start scrolled to today
-          this.$nextTick(() => this.scrollToDay(0));
+          // Scroll to today
+          this.$nextTick(() => this.scrollToDay(this.selectedDayIdx));
         },
 
         buildDays() {
           const days = [];
           const today = new Date();
-          const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-          const fullDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+          
+          // Find Monday of current week
+          const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, etc.
+          const monday = new Date(today);
+          monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
           
           for (let i = 0; i < 7; i++) {
-            const d = new Date(today);
-            d.setDate(today.getDate() + i);
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            const isToday = d.toDateString() === today.toDateString();
             days.push({
               date: d,
               dateStr: d.toISOString().split('T')[0],
-              shortName: dayNames[d.getDay()],
-              dayName: i === 0 ? 'Today' : (i === 1 ? 'Tomorrow' : fullDayNames[d.getDay()]),
-              dateFormatted: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              shortName: dayNames[i],
+              dayName: dayNames[i],
+              dateFormatted: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              isToday: isToday
             });
           }
           this.days = days;
+          
+          // Set initial selection to today
+          this.selectedDayIdx = days.findIndex(d => d.isToday);
+          if (this.selectedDayIdx < 0) this.selectedDayIdx = 0;
         },
 
         async loadAllTasks() {

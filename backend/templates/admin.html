@@ -8,6 +8,10 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
   <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
+  <script>
+    // Set theme before page renders to prevent flash
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('admin-theme') || 'solid');
+  </script>
   <style>
     /* Admin-specific styles */
     .admin-container {
@@ -22,11 +26,64 @@
       text-align: center;
       padding: 8px 0 16px;
       flex-shrink: 0;
+      position: relative;
     }
 
     .admin-header h1 {
       font-size: 1.8rem;
       color: var(--text-primary);
+    }
+
+    /* Theme Picker */
+    .theme-picker {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .theme-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .theme-option:hover {
+      transform: scale(1.1);
+    }
+
+    .theme-option.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* Dark theme preview */
+    .theme-option.dark-preview {
+      background: linear-gradient(135deg, #1a1b26 50%, #24283b 50%);
+    }
+    .theme-option.dark-preview::after {
+      content: '◑';
+      color: #c0caf5;
+      font-size: 14px;
+    }
+
+    /* Solid theme preview */
+    .theme-option.solid-preview {
+      background: linear-gradient(135deg, #dc3545 33%, #ffc107 33%, #ffc107 66%, #28a745 66%);
+    }
+    .theme-option.solid-preview::after {
+      content: '◉';
+      color: white;
+      font-size: 14px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
     }
 
     /* Day slider */
@@ -539,6 +596,20 @@
   <div class="admin-container">
     <header class="admin-header">
       <h1>Ilse.Admin</h1>
+      <div class="theme-picker">
+        <div 
+          class="theme-option dark-preview" 
+          :class="{ active: theme === 'dark' }"
+          @click="setTheme('dark')"
+          title="Dark Theme"
+        ></div>
+        <div 
+          class="theme-option solid-preview" 
+          :class="{ active: theme === 'solid' }"
+          @click="setTheme('solid')"
+          title="Solid Theme"
+        ></div>
+      </div>
     </header>
 
     <!-- Day selector dots -->
@@ -718,6 +789,7 @@
         editingTask: null,
         insertAtDate: null,
         insertAtOrder: 0,
+        theme: localStorage.getItem('admin-theme') || 'solid',
         form: {
           title: '',
           description: '',
@@ -729,6 +801,12 @@
           repeat_monthly: false
         },
         
+        setTheme(newTheme) {
+          this.theme = newTheme;
+          localStorage.setItem('admin-theme', newTheme);
+          document.documentElement.setAttribute('data-theme', newTheme);
+        },
+
         // Drag and drop state
         draggedTask: null,
         draggedFromDate: null,

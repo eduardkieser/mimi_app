@@ -65,6 +65,18 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
+## Testing
+
+Run the test suite:
+
+```bash
+cd backend
+source venv/bin/activate
+pytest tests/ -v
+```
+
+**Note**: When adding new features, always add corresponding tests. See `.cursorrules` for testing guidelines.
+
 ## License
 
 Private / Personal Use

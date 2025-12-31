@@ -68,16 +68,16 @@ def delete_template(template_id: int, session: Session = Depends(get_session)):
 
 # ============ Task Generation ============
 
-@router.post("/generate/{target_date}", response_model=list[TaskRead])
-def generate_tasks(target_date: date, session: Session = Depends(get_session)):
-    """Manually generate tasks for a specific date from templates."""
-    return task_service.generate_tasks_for_date(session, target_date)
-
-
 @router.post("/generate/today", response_model=list[TaskRead])
 def generate_todays_tasks(session: Session = Depends(get_session)):
     """Manually generate today's tasks from templates."""
     return task_service.generate_tasks_for_date(session, date.today())
+
+
+@router.post("/generate/{target_date}", response_model=list[TaskRead])
+def generate_tasks(target_date: date, session: Session = Depends(get_session)):
+    """Manually generate tasks for a specific date from templates."""
+    return task_service.generate_tasks_for_date(session, target_date)
 
 
 # ============ Direct Task Creation ============

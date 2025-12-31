@@ -89,36 +89,6 @@ body {
   margin-bottom: 8px;
 }
 
-/* Progress bar */
-.progress-container {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 16px 20px;
-  margin-bottom: 24px;
-}
-
-.progress-label {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-.progress-bar {
-  height: 12px;
-  background: var(--bg-primary);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-completed), #73daca);
-  border-radius: 6px;
-  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
 /* Task list */
 .task-list {
   display: flex;
@@ -365,26 +335,6 @@ body {
 .empty-state h3 {
   font-size: 1.2rem;
   margin-bottom: 8px;
-  color: var(--text-secondary);
-}
-
-/* All done celebration */
-.all-done {
-  text-align: center;
-  padding: 40px 20px;
-  background: linear-gradient(135deg, var(--bg-card), rgba(158, 206, 106, 0.1));
-  border-radius: var(--radius);
-  border: 2px solid var(--color-completed);
-  margin-top: 24px;
-}
-
-.all-done h2 {
-  color: var(--color-completed);
-  font-size: 1.8rem;
-  margin-bottom: 8px;
-}
-
-.all-done p {
   color: var(--text-secondary);
 }
 

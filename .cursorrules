@@ -1,0 +1,96 @@
+# Mimi.Today Project Rules
+
+## Overview
+This is a task management app for a house cleaner (Mimi) with an admin panel for the homeowner (Ilse).
+
+## Architecture
+
+### Backend (Python/FastAPI)
+- Located in `backend/`
+- FastAPI app with SQLModel ORM
+- SQLite database stored in `backend/data/mimi.db`
+- Two main routers: `tasks.py` (Mimi's view) and `admin.py` (Ilse's admin)
+- Business logic in `services/task_service.py`
+
+### Frontend (HTMX + Alpine.js)
+- Templates in `backend/templates/`
+- `mimi.html` - Mimi's task view
+- `admin.html` - Ilse's admin panel
+- Styles in `backend/static/styles.css`
+
+## Key Patterns
+
+### Provider Pattern
+- Keep business logic in `services/` modules
+- Routers only handle HTTP, call services for logic
+- No database operations directly in route handlers
+
+### Task Templates
+- `TaskTemplate` defines recurring tasks
+- `Task` is a concrete instance for a specific date
+- Templates generate tasks when a day is viewed
+- See `docs/TASK_TEMPLATE_SPEC.md` for full specification
+
+## Development
+
+### Running the App
+```bash
+cd backend
+source venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+```
+
+### Running Tests
+```bash
+cd backend
+source venv/bin/activate
+pytest tests/ -v
+```
+
+## Testing Requirements
+
+**IMPORTANT: When adding new features, always add corresponding tests.**
+
+### Test Structure
+- `tests/conftest.py` - Fixtures and test database setup
+- `tests/test_task_service.py` - Service layer unit tests
+- `tests/test_api_tasks.py` - Task API integration tests
+- `tests/test_api_admin.py` - Admin API integration tests
+
+### Testing Guidelines
+1. Add unit tests for new service functions
+2. Add integration tests for new API endpoints
+3. Use fixtures from `conftest.py` for sample data
+4. Run `pytest tests/ -v` before committing
+
+## Database Changes
+
+When modifying models:
+1. Delete `backend/data/mimi.db` to recreate schema
+2. Touch `app/main.py` to trigger server reload
+3. Or restart the uvicorn process
+
+## Code Style
+
+### Python
+- Use type hints
+- Keep functions focused and small
+- Document complex logic with comments
+
+### JavaScript (in templates)
+- Use Alpine.js for reactivity
+- Use HTMX for server interactions where appropriate
+- Keep optimistic UI updates for better UX
+
+## Commits
+- Make atomic commits with descriptive messages
+- Run tests before committing
+- Push changes after each feature is complete
+
+## UI/UX Preferences
+- Solid theme is default
+- No emojis in widgets
+- Simple, clean interface
+- Haptic feedback and sounds on task completion
+- Date navigation with arrows, not calendars
+

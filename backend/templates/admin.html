@@ -1002,66 +1002,83 @@
           
           const task = this.draggedTask;
           const fromDate = this.draggedFromDate;
-          const targetTasks = this.getTasksForDay(targetDate);
+          const fromTasks = this.tasks[fromDate] || [];
+          const targetTasks = this.tasks[targetDate] || [];
           
           // Determine new order
           let newOrder = 0;
           if (this.dropTargetTask && targetDate === this.dropTargetTask.scheduled_date?.split('T')[0]) {
-            // Dropped on another task - insert before it
             newOrder = this.dropTargetTask.order;
           } else if (targetTasks.length > 0) {
-            // Dropped in empty area - add to end
             newOrder = Math.max(...targetTasks.map(t => t.order)) + 1;
           }
           
-          // If same day and we have a target, reorder locally
-          if (fromDate === targetDate && this.dropTargetTask) {
-            // Reorder within same day
-            const tasks = [...targetTasks];
-            const fromIdx = tasks.findIndex(t => t.id === task.id);
-            const toIdx = tasks.findIndex(t => t.id === this.dropTargetTask.id);
+          // Clear drag state first
+          this.draggedTask = null;
+          this.draggedFromDate = null;
+          const dropTarget = this.dropTargetTask;
+          this.dropTargetTask = null;
+          
+          // OPTIMISTIC UI UPDATE - happens immediately
+          if (fromDate === targetDate && dropTarget) {
+            // Same day reorder
+            const fromIdx = fromTasks.findIndex(t => t.id === task.id);
+            const toIdx = fromTasks.findIndex(t => t.id === dropTarget.id);
             
             if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
               // Remove from old position
-              tasks.splice(fromIdx, 1);
+              fromTasks.splice(fromIdx, 1);
               // Insert at new position
               const insertIdx = fromIdx < toIdx ? toIdx - 1 : toIdx;
-              tasks.splice(insertIdx, 0, task);
+              fromTasks.splice(insertIdx, 0, task);
               
-              // Update all orders
-              const reorders = tasks.map((t, i) => ({ id: t.id, order: i }));
-              await fetch('/api/admin/tasks/reorder', {
+              // Update orders in local state
+              fromTasks.forEach((t, i) => t.order = i);
+              
+              // Trigger reactivity
+              this.tasks[fromDate] = [...fromTasks];
+              
+              // Sync with backend in background (no await)
+              const reorders = fromTasks.map((t, i) => ({ id: t.id, order: i }));
+              fetch('/api/admin/tasks/reorder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(reorders)
-              });
+              }).catch(err => console.error('Reorder failed:', err));
             }
           } else if (fromDate !== targetDate) {
-            // Moving to different day
-            // Shift orders in target day
-            for (const t of targetTasks) {
-              if (t.order >= newOrder) {
-                t.order += 1;
-              }
+            // Move to different day - update UI immediately
+            // Remove from source
+            const fromIdx = fromTasks.findIndex(t => t.id === task.id);
+            if (fromIdx !== -1) {
+              fromTasks.splice(fromIdx, 1);
+              fromTasks.forEach((t, i) => t.order = i);
+              this.tasks[fromDate] = [...fromTasks];
             }
-            if (targetTasks.length > 0) {
-              await fetch('/api/admin/tasks/reorder', {
+            
+            // Shift orders in target and insert
+            targetTasks.forEach(t => {
+              if (t.order >= newOrder) t.order += 1;
+            });
+            task.order = newOrder;
+            task.scheduled_date = targetDate;
+            targetTasks.push(task);
+            targetTasks.sort((a, b) => a.order - b.order);
+            this.tasks[targetDate] = [...targetTasks];
+            
+            // Sync with backend in background
+            if (targetTasks.length > 1) {
+              fetch('/api/admin/tasks/reorder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(targetTasks.map(t => ({ id: t.id, order: t.order })))
-              });
+              }).catch(err => console.error('Reorder failed:', err));
             }
             
-            // Move the task
-            await fetch(`/api/admin/tasks/${task.id}/move?target_date=${targetDate}&order=${newOrder}`, {
+            fetch(`/api/admin/tasks/${task.id}/move?target_date=${targetDate}&order=${newOrder}`, {
               method: 'POST'
-            });
+            }).catch(err => console.error('Move failed:', err));
           }
-          
-          this.draggedTask = null;
-          this.draggedFromDate = null;
-          this.dropTargetTask = null;
-          await this.loadAllTasks();
         }
       };
     }

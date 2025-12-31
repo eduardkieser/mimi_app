@@ -200,26 +200,25 @@
     }
 
     .repeat-badge {
-      font-size: 0.65rem;
-      padding: 2px 6px;
-      border-radius: 4px;
+      font-size: 0.85rem;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
       background: var(--accent);
       color: var(--bg-primary);
       font-weight: 600;
       white-space: nowrap;
     }
 
-    .repeat-badge.daily {
-      background: var(--color-completed);
-    }
-
-    .repeat-badge.weekly {
-      background: var(--accent);
-    }
-
+    /* All repeat types use subtle styling */
+    .repeat-badge.daily,
+    .repeat-badge.weekly,
     .repeat-badge.monthly {
-      background: var(--color-optional);
-      color: var(--bg-primary);
+      background: var(--bg-hover);
+      color: var(--text-muted);
     }
 
     .admin-task-actions {
@@ -801,14 +800,9 @@
         },
 
         getRepeatLabel(task) {
+          // Simple repeat icon - no need for day details
           if (!task.repeat_info) return '';
-          const type = task.repeat_info.type;
-          if (type === 'daily') return '🔄 Daily';
-          if (type === 'weekly') {
-            const days = task.repeat_info.days || [];
-            return '🔄 ' + days.join('/');
-          }
-          if (type === 'monthly') return '🔄 Monthly';
+          return '↻';
           return '';
         },
 

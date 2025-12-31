@@ -290,6 +290,10 @@ body {
   color: var(--color-completed);
 }
 
+[data-theme="solid"] .task-card.completed .task-title {
+  color: inherit;
+}
+
 .task-description {
   font-size: 0.9rem;
   color: var(--text-muted);

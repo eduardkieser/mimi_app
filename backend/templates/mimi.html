@@ -11,7 +11,7 @@
   <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
   <script>
     // Set theme before page renders to prevent flash
-    document.documentElement.setAttribute('data-theme', localStorage.getItem('mimi-theme') || 'dark');
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('mimi-theme') || 'solid');
   </script>
   <style>
     .theme-toggle {
@@ -126,10 +126,10 @@
               class="task-badge"
               :class="{
                 'required': task.priority === 'required' && task.status !== 'completed',
-                'optional': task.priority === 'optional' && task.status !== 'completed',
                 'done': task.status === 'completed'
               }"
-              x-text="task.status === 'completed' ? 'Done!' : task.priority"
+              x-show="task.status === 'completed' || task.priority === 'required'"
+              x-text="task.status === 'completed' ? 'Done!' : 'Required'"
             ></span>
           </div>
         </div>
@@ -146,7 +146,7 @@
     function taskApp() {
       return {
         tasks: [],
-        theme: localStorage.getItem('mimi-theme') || 'dark',
+        theme: localStorage.getItem('mimi-theme') || 'solid',
         audioCtx: null,
         displayDate: new Date(),
         

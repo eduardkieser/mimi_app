@@ -40,50 +40,74 @@
       top: 8px;
       right: 8px;
       display: flex;
-      gap: 8px;
+      gap: 6px;
+      background: var(--bg-card);
+      padding: 6px 10px;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
 
     .theme-option {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
       cursor: pointer;
       border: 2px solid transparent;
       transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: relative;
       overflow: hidden;
     }
 
     .theme-option:hover {
-      transform: scale(1.1);
+      transform: scale(1.15);
+      z-index: 1;
     }
 
     .theme-option.active {
       border-color: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+      transform: scale(1.1);
     }
 
-    /* Dark theme preview */
-    .theme-option.dark-preview {
-      background: linear-gradient(135deg, #1a1b26 50%, #24283b 50%);
-    }
-    .theme-option.dark-preview::after {
-      content: '◑';
-      color: #c0caf5;
-      font-size: 14px;
+    /* Dark theme - moonlit purple */
+    .theme-option[data-theme="dark"] {
+      background: linear-gradient(135deg, #1a1b26, #24283b);
+      box-shadow: inset 0 0 8px rgba(122, 162, 247, 0.3);
     }
 
-    /* Solid theme preview */
-    .theme-option.solid-preview {
-      background: linear-gradient(135deg, #dc3545 33%, #ffc107 33%, #ffc107 66%, #28a745 66%);
+    /* Solid theme - traffic lights */
+    .theme-option[data-theme="solid"] {
+      background: conic-gradient(from 0deg, #dc3545, #ffc107, #28a745, #dc3545);
     }
-    .theme-option.solid-preview::after {
-      content: '◉';
-      color: white;
-      font-size: 14px;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+
+    /* Sunset theme - warm coral gradient */
+    .theme-option[data-theme="sunset"] {
+      background: linear-gradient(135deg, #f4a261, #e76f51, #e63946);
+    }
+
+    /* Ocean theme - deep sea */
+    .theme-option[data-theme="ocean"] {
+      background: linear-gradient(135deg, #0a192f, #1d3557, #64ffda);
+    }
+
+    /* Neon theme - cyberpunk */
+    .theme-option[data-theme="neon"] {
+      background: linear-gradient(135deg, #ff2a6d, #0d0221, #00d4ff);
+      animation: neon-pulse 2s ease-in-out infinite alternate;
+    }
+    @keyframes neon-pulse {
+      from { box-shadow: 0 0 5px #ff2a6d, inset 0 0 5px rgba(0, 212, 255, 0.3); }
+      to { box-shadow: 0 0 10px #00d4ff, inset 0 0 8px rgba(255, 42, 109, 0.5); }
+    }
+    .theme-option[data-theme="neon"].active {
+      animation: none;
+      box-shadow: 0 0 15px #00d4ff, 0 0 30px #ff2a6d;
+    }
+
+    /* Paper theme - clean white */
+    .theme-option[data-theme="paper"] {
+      background: linear-gradient(135deg, #ffffff, #f8f9fa);
+      border: 1px solid #dee2e6;
     }
 
     /* Day slider */
@@ -598,16 +622,46 @@
       <h1>Ilse.Admin</h1>
       <div class="theme-picker">
         <div 
-          class="theme-option dark-preview" 
+          class="theme-option" 
+          data-theme="dark"
           :class="{ active: theme === 'dark' }"
           @click="setTheme('dark')"
-          title="Dark Theme"
+          title="Dark"
         ></div>
         <div 
-          class="theme-option solid-preview" 
+          class="theme-option" 
+          data-theme="solid"
           :class="{ active: theme === 'solid' }"
           @click="setTheme('solid')"
-          title="Solid Theme"
+          title="Solid"
+        ></div>
+        <div 
+          class="theme-option" 
+          data-theme="sunset"
+          :class="{ active: theme === 'sunset' }"
+          @click="setTheme('sunset')"
+          title="Sunset"
+        ></div>
+        <div 
+          class="theme-option" 
+          data-theme="ocean"
+          :class="{ active: theme === 'ocean' }"
+          @click="setTheme('ocean')"
+          title="Ocean"
+        ></div>
+        <div 
+          class="theme-option" 
+          data-theme="neon"
+          :class="{ active: theme === 'neon' }"
+          @click="setTheme('neon')"
+          title="Neon"
+        ></div>
+        <div 
+          class="theme-option" 
+          data-theme="paper"
+          :class="{ active: theme === 'paper' }"
+          @click="setTheme('paper')"
+          title="Paper"
         ></div>
       </div>
     </header>

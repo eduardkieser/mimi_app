@@ -231,6 +231,32 @@ class TestDeleteTemplateTasks:
         # Original weekdays: "0,2,4" (Mon, Wed, Fri)
         # After delete: should be "2,4" (Wed, Fri)
         assert "0" not in template["weekdays"], "Monday was not removed from template weekdays!"
+    
+    def test_delete_daily_task_converts_to_weekly(self, client, sample_daily_template):
+        """Deleting a daily task should convert template to weekly on remaining days."""
+        # Generate task for Monday (2025-12-29, weekday 0)
+        gen_response = client.post("/api/admin/generate/2025-12-29")
+        assert gen_response.status_code == 200
+        tasks = gen_response.json()
+        
+        # Find the daily task
+        daily_task = [t for t in tasks if t["title"] == "Vacuum Living Room"][0]
+        task_id = daily_task["id"]
+        
+        # Delete the task
+        del_response = client.delete(f"/api/admin/tasks/{task_id}")
+        assert del_response.status_code == 200
+        
+        # Check template - should be converted to weekly, excluding Monday
+        template_response = client.get(f"/api/admin/templates/{sample_daily_template.id}")
+        template = template_response.json()
+        
+        # Should now be WEEKLY instead of DAILY
+        assert template["repeat_type"] == "weekly", "Template should be converted to weekly!"
+        # Should have weekdays 1,2,3,4 (Tue, Wed, Thu, Fri) - Monday (0) excluded
+        weekdays = set(template["weekdays"].split(","))
+        assert "0" not in weekdays, "Monday should be excluded from weekdays!"
+        assert weekdays == {"1", "2", "3", "4"}, f"Expected Tue-Fri, got {weekdays}"
 
 
 class TestMoveTemplateTasks:

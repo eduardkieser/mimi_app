@@ -107,8 +107,9 @@ def delete_task(task_id: int, session: Session = Depends(get_session)):
     """
     Delete a task. 
     For template-based weekly tasks, removes that day from the template's weekdays.
-    For template-based daily tasks, deactivates the template entirely.
+    For template-based daily tasks, converts to weekly on remaining weekdays.
     """
+    logger.info(f"Deleting task {task_id}")
     result = task_service.delete_task_with_template_update(session, task_id)
     if not result:
         raise HTTPException(status_code=404, detail="Task not found")

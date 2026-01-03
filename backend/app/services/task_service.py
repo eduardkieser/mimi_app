@@ -361,8 +361,19 @@ def delete_task_with_template_update(session: Session, task_id: int) -> bool:
                     session.add(template)
             
             elif template.repeat_type == RepeatType.DAILY:
-                # Deactivate the template entirely
-                template.is_active = False
+                # Convert daily to weekly, excluding the deleted day
+                task_weekday = task.scheduled_date.weekday()
+                # Daily means Mon-Fri (0-4), so remaining days are all weekdays except deleted one
+                remaining_days = {d for d in range(5) if d != task_weekday}
+                
+                if remaining_days:
+                    template.repeat_type = RepeatType.WEEKLY
+                    template.weekdays = ",".join(str(d) for d in sorted(remaining_days))
+                    logger.info(f"Converted daily template {template.id} to weekly on days: {template.weekdays}")
+                else:
+                    # Only had one weekday somehow, deactivate
+                    template.is_active = False
+                
                 template.updated_at = datetime.utcnow()
                 session.add(template)
             

@@ -10,6 +10,10 @@ services:
     ports:
       - "8001:8001"
     volumes:
+      # Mount code for live updates (no rebuild needed)
+      - ./backend/app:/app/app
+      - ./backend/static:/app/static
+      - ./backend/templates:/app/templates
       # Persist SQLite database
       - ./backend/data:/app/data
       # Persist logs

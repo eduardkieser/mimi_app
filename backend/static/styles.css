@@ -10,13 +10,11 @@
   --text-secondary: #9aa5ce;
   --text-muted: #565f89;
   
-  /* Task priority colors */
-  --color-required: #f7768e;      /* Red/coral for required */
-  --color-optional: #e0af68;      /* Golden yellow for optional */
+  /* Task type colors */
+  --color-one-time: #bb9af7;      /* Purple for one-time/monthly */
   --color-completed: #9ece6a;     /* Fresh green for done */
   
-  --color-required-glow: rgba(247, 118, 142, 0.3);
-  --color-optional-glow: rgba(224, 175, 104, 0.3);
+  --color-one-time-glow: rgba(187, 154, 247, 0.4);
   --color-completed-glow: rgba(158, 206, 106, 0.4);
   
   /* Accent */
@@ -41,12 +39,10 @@
   --text-secondary: #a0a0b0;
   --text-muted: #606070;
   
-  --color-required: #dc3545;
-  --color-optional: #ffc107;
+  --color-one-time: #9b59b6;
   --color-completed: #28a745;
   
-  --color-required-glow: rgba(220, 53, 69, 0.4);
-  --color-optional-glow: rgba(255, 193, 7, 0.4);
+  --color-one-time-glow: rgba(155, 89, 182, 0.5);
   --color-completed-glow: rgba(40, 167, 69, 0.5);
   
   --accent: #6c8aec;
@@ -65,12 +61,10 @@
   --text-secondary: #5c5470;
   --text-muted: #9a8c98;
   
-  --color-required: #e63946;
-  --color-optional: #f4a261;
+  --color-one-time: #8e44ad;
   --color-completed: #2a9d8f;
   
-  --color-required-glow: rgba(230, 57, 70, 0.25);
-  --color-optional-glow: rgba(244, 162, 97, 0.3);
+  --color-one-time-glow: rgba(142, 68, 173, 0.3);
   --color-completed-glow: rgba(42, 157, 143, 0.3);
   
   --accent: #e76f51;
@@ -89,12 +83,10 @@
   --text-secondary: #8892b0;
   --text-muted: #495670;
   
-  --color-required: #ff6b6b;
-  --color-optional: #ffd93d;
+  --color-one-time: #da70d6;
   --color-completed: #6bcb77;
   
-  --color-required-glow: rgba(255, 107, 107, 0.3);
-  --color-optional-glow: rgba(255, 217, 61, 0.3);
+  --color-one-time-glow: rgba(218, 112, 214, 0.4);
   --color-completed-glow: rgba(107, 203, 119, 0.4);
   
   --accent: #64ffda;
@@ -113,12 +105,10 @@
   --text-secondary: #c8b8e8;
   --text-muted: #7b6a9e;
   
-  --color-required: #ff2a6d;
-  --color-optional: #ffcc00;
+  --color-one-time: #ff2a6d;
   --color-completed: #05ffa1;
   
-  --color-required-glow: rgba(255, 42, 109, 0.5);
-  --color-optional-glow: rgba(255, 204, 0, 0.4);
+  --color-one-time-glow: rgba(255, 42, 109, 0.5);
   --color-completed-glow: rgba(5, 255, 161, 0.5);
   
   --accent: #00d4ff;
@@ -137,12 +127,10 @@
   --text-secondary: #495057;
   --text-muted: #adb5bd;
   
-  --color-required: #c92a2a;
-  --color-optional: #e67700;
+  --color-one-time: #7048e8;
   --color-completed: #2f9e44;
   
-  --color-required-glow: rgba(201, 42, 42, 0.15);
-  --color-optional-glow: rgba(230, 119, 0, 0.15);
+  --color-one-time-glow: rgba(112, 72, 232, 0.2);
   --color-completed-glow: rgba(47, 158, 68, 0.2);
   
   --accent: #1971c2;
@@ -220,7 +208,7 @@ body {
 }
 
 .task-card.one-time::before {
-  background: var(--text-muted);
+  background: var(--color-one-time, #9370db);
 }
 
 .task-card.completed::before {
@@ -233,8 +221,8 @@ body {
 }
 
 .task-card.one-time:not(.completed):hover {
-  border-color: var(--text-muted);
-  box-shadow: 0 0 15px rgba(100, 100, 100, 0.2);
+  border-color: var(--color-one-time, #9370db);
+  box-shadow: 0 0 20px var(--color-one-time-glow, rgba(147, 112, 219, 0.3));
 }
 
 /* Repeat indicator for recurring tasks */
@@ -269,9 +257,8 @@ body {
 }
 
 [data-theme="solid"] .task-card.one-time:not(.completed) {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 2px solid var(--text-muted);
+  background: var(--color-one-time);
+  color: white;
 }
 
 [data-theme="solid"] .task-card.completed {
@@ -294,7 +281,7 @@ body {
 }
 
 [data-theme="solid"] .task-card.one-time .task-checkbox {
-  border-color: var(--text-muted);
+  border-color: var(--color-one-time);
 }
 
 [data-theme="solid"] .task-card.completed .task-checkbox {
@@ -326,7 +313,7 @@ body {
 }
 
 .task-card.one-time .task-checkbox {
-  border-color: var(--text-muted);
+  border-color: var(--color-one-time);
 }
 
 .task-card.completed .task-checkbox {
@@ -380,9 +367,8 @@ body {
   color: white;
 }
 [data-theme="sunset"] .task-card.one-time:not(.completed) {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 2px solid var(--text-muted);
+  background: var(--color-one-time);
+  color: white;
 }
 [data-theme="sunset"] .task-card.completed {
   background: var(--color-completed);
@@ -396,7 +382,7 @@ body {
   border-color: rgba(255, 255, 255, 0.6);
 }
 [data-theme="sunset"] .task-card.one-time .task-checkbox {
-  border-color: var(--text-muted);
+  border-color: var(--color-one-time);
 }
 
 /* Ocean theme - glowing borders */
@@ -409,7 +395,8 @@ body {
   border-color: var(--accent);
 }
 [data-theme="ocean"] .task-card.one-time:not(.completed) {
-  box-shadow: 0 0 10px rgba(100, 100, 150, 0.2);
+  box-shadow: 0 0 15px var(--color-one-time-glow), inset 0 0 20px rgba(218, 112, 214, 0.1);
+  border-color: var(--color-one-time);
 }
 [data-theme="ocean"] .task-card.completed {
   box-shadow: 0 0 20px var(--color-completed-glow);
@@ -430,9 +417,9 @@ body {
   color: #0d0221;
 }
 [data-theme="neon"] .task-card.one-time:not(.completed) {
-  background: linear-gradient(135deg, rgba(100, 80, 150, 0.6), rgba(80, 60, 120, 0.5));
-  box-shadow: 0 0 10px rgba(100, 80, 150, 0.3);
-  color: var(--text-primary);
+  background: linear-gradient(135deg, rgba(255, 42, 109, 0.9), rgba(255, 42, 109, 0.7));
+  box-shadow: 0 0 20px var(--color-one-time-glow), 0 0 40px rgba(255, 42, 109, 0.2);
+  color: white;
 }
 [data-theme="neon"] .task-card.completed {
   background: linear-gradient(135deg, rgba(5, 255, 161, 0.9), rgba(5, 255, 161, 0.7));

@@ -170,3 +170,28 @@ def create_snapshot(target_date: date, session: Session = Depends(get_session)):
     tasks = task_service.create_daily_snapshot(session, target_date)
     return {"ok": True, "snapshot_count": len(tasks)}
 
+
+@router.post("/regenerate/{target_date}")
+def regenerate_tasks_for_date(target_date: date, session: Session = Depends(get_session)):
+    """Clear and regenerate tasks for a specific date from active templates."""
+    logger.info(f"Regenerating tasks for {target_date}")
+    tasks = task_service.regenerate_tasks_for_date(session, target_date)
+    return tasks
+
+
+@router.post("/regenerate-week")
+def regenerate_week_tasks(session: Session = Depends(get_session)):
+    """Clear and regenerate tasks for the entire current week."""
+    from datetime import timedelta
+    today = date.today()
+    monday = today - timedelta(days=today.weekday())
+    
+    all_tasks = []
+    for i in range(7):
+        day = monday + timedelta(days=i)
+        logger.info(f"Regenerating tasks for {day}")
+        tasks = task_service.regenerate_tasks_for_date(session, day)
+        all_tasks.extend(tasks)
+    
+    return {"regenerated_count": len(all_tasks)}
+

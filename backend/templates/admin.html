@@ -19,6 +19,7 @@
   <div class="admin-container">
     <header class="admin-header">
       <h1>Ilse.Admin</h1>
+      <button class="regenerate-btn" @click="regenerateWeek()" title="Refresh all tasks from templates">⟳ Sync</button>
       <div class="theme-picker">
         <div class="theme-option" data-theme="dark" :class="{ active: theme === 'dark' }" @click="setTheme('dark')" title="Dark"></div>
         <div class="theme-option" data-theme="solid" :class="{ active: theme === 'solid' }" @click="setTheme('solid')" title="Solid"></div>

@@ -116,6 +116,26 @@ def get_todays_tasks(session: Session) -> list[Task]:
     return get_tasks_for_date(session, date.today())
 
 
+def regenerate_tasks_for_date(session: Session, target_date: date) -> list[Task]:
+    """
+    Clear and regenerate tasks for a given date.
+    Removes all template-based tasks and regenerates from active templates.
+    Preserves one-time (non-template) tasks.
+    """
+    # Get existing tasks for this date
+    statement = select(Task).where(Task.scheduled_date == target_date)
+    existing = session.exec(statement).all()
+    
+    # Delete only template-based tasks
+    for task in existing:
+        if task.template_id:
+            session.delete(task)
+    session.commit()
+    
+    # Generate fresh tasks from templates
+    return generate_tasks_for_date(session, target_date)
+
+
 def generate_tasks_for_date(session: Session, target_date: date) -> list[Task]:
     """
     Generate tasks for a given date based on active templates.
@@ -441,7 +461,14 @@ def delete_task_with_template_update(session: Session, task_id: int) -> bool:
                 template.updated_at = datetime.utcnow()
                 session.add(template)
             
-            # For monthly or none, just delete the task (template stays)
+            elif template.repeat_type == RepeatType.MONTHLY:
+                # Deactivate the monthly template
+                logger.info(f"Deactivating monthly template {template.id}")
+                template.is_active = False
+                template.updated_at = datetime.utcnow()
+                session.add(template)
+            
+            # For none (one-time), just delete the task
     
     session.delete(task)
     session.commit()

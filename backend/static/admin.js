@@ -91,6 +91,19 @@ function adminApp() {
       }
     },
 
+    async regenerateWeek() {
+      if (!confirm('This will refresh all tasks from templates. Continue?')) return;
+      
+      try {
+        const response = await fetch('/api/admin/regenerate-week', { method: 'POST' });
+        const result = await response.json();
+        console.log('Regenerated:', result);
+        await this.loadAllTasks();
+      } catch (err) {
+        console.error('Failed to regenerate:', err);
+      }
+    },
+
     getTasksForDay(dateStr) {
       return this.tasks[dateStr] || [];
     },
@@ -210,20 +223,54 @@ function adminApp() {
 
     async saveTask() {
       if (this.editingTask) {
-        // Update existing task
-        try {
-          await fetch(`/api/tasks/${this.editingTask.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: this.form.title,
-              description: this.form.description || null,
-              priority: this.form.priority,
-              expected_minutes: this.form.expected_minutes
-            })
-          });
-        } catch (err) {
-          console.error('Failed to update task:', err);
+        // Determine repeat type from form
+        let repeatType = 'none';
+        let weekdays = '';
+        
+        if (this.form.repeat_daily) {
+          repeatType = 'daily';
+        } else if (this.form.repeat_weekly && this.form.weekly_days.length > 0) {
+          repeatType = 'weekly';
+          weekdays = this.form.weekly_days.join(',');
+        } else if (this.form.repeat_monthly) {
+          repeatType = 'monthly';
+        }
+        
+        // If task is template-based, update the template
+        if (this.editingTask.template_id) {
+          try {
+            console.log('Updating template:', this.editingTask.template_id);
+            await fetch(`/api/admin/templates/${this.editingTask.template_id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: this.form.title,
+                description: this.form.description || null,
+                priority: this.form.priority,
+                expected_minutes: this.form.expected_minutes,
+                repeat_type: repeatType,
+                weekdays: weekdays
+              })
+            });
+          } catch (err) {
+            console.error('Failed to update template:', err);
+          }
+        } else {
+          // Non-template task: just update the task instance
+          try {
+            await fetch(`/api/tasks/${this.editingTask.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: this.form.title,
+                description: this.form.description || null,
+                priority: this.form.priority,
+                expected_minutes: this.form.expected_minutes
+              })
+            });
+          } catch (err) {
+            console.error('Failed to update task:', err);
+          }
         }
       } else {
         // Determine repeat type

@@ -299,7 +299,10 @@ function adminApp() {
 
     async deleteTask(taskId) {
       try {
-        await fetch(`/api/admin/tasks/${taskId}`, { method: 'DELETE' });
+        const response = await fetch(`/api/admin/tasks/${taskId}`, { method: 'DELETE' });
+        if (!response.ok) {
+          console.error('Delete failed:', response.status);
+        }
         await this.loadAllTasks();
       } catch (err) {
         console.error('Failed to delete task:', err);
@@ -390,10 +393,16 @@ function adminApp() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(reorders)
-          }).catch(err => console.error('Reorder failed:', err));
+          }).catch(err => {
+            console.error('Reorder failed:', err);
+            this.loadAllTasks();
+          });
         }
       } else if (fromDate !== targetDate) {
         // Move to different day
+        console.log(`Moving task ${task.id} (${task.title}) from ${fromDate} to ${targetDate}`);
+        
+        // Optimistic: remove from source
         const fromIdx = fromTasks.findIndex(t => t.id === task.id);
         if (fromIdx !== -1) {
           fromTasks.splice(fromIdx, 1);
@@ -401,29 +410,40 @@ function adminApp() {
           this.tasks[fromDate] = [...fromTasks];
         }
         
-        targetTasks.forEach(t => {
-          if (t.order >= newOrder) t.order += 1;
-        });
-        task.order = newOrder;
-        task.scheduled_date = targetDate;
-        targetTasks.push(task);
-        targetTasks.sort((a, b) => a.order - b.order);
-        this.tasks[targetDate] = [...targetTasks];
+        // Check if task already exists on target date (same template)
+        const existingOnTarget = targetTasks.find(t => 
+          t.template_id && t.template_id === task.template_id
+        );
         
-        if (targetTasks.length > 1) {
-          fetch('/api/admin/tasks/reorder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(targetTasks.map(t => ({ id: t.id, order: t.order })))
-          }).catch(err => console.error('Reorder failed:', err));
+        if (existingOnTarget) {
+          // Task already exists on target - just delete from source, don't add to target
+          console.log(`Task already exists on ${targetDate}, just removing from ${fromDate}`);
+          // UI already updated (removed from source)
+        } else {
+          // Add to target
+          targetTasks.forEach(t => {
+            if (t.order >= newOrder) t.order += 1;
+          });
+          task.order = newOrder;
+          task.scheduled_date = targetDate;
+          targetTasks.push(task);
+          targetTasks.sort((a, b) => a.order - b.order);
+          this.tasks[targetDate] = [...targetTasks];
         }
         
+        // Backend call
         fetch(`/api/admin/tasks/${task.id}/move?target_date=${targetDate}&order=${newOrder}`, {
           method: 'POST'
-        }).then(response => {
+        }).then(async response => {
           if (!response.ok) {
-            console.error('Move failed with status:', response.status);
+            const errText = await response.text();
+            console.error('Move failed:', response.status, errText);
             this.loadAllTasks();
+          } else {
+            const data = await response.json();
+            console.log('Move succeeded:', data);
+            // Reload to get correct state (new task IDs, etc)
+            await this.loadAllTasks();
           }
         }).catch(err => {
           console.error('Move failed:', err);
@@ -433,4 +453,3 @@ function adminApp() {
     }
   };
 }
-

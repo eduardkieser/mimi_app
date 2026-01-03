@@ -132,14 +132,36 @@ def move_task(task_id: int, target_date: date, order: int, session: Session = De
     """
     Move a task to a different date and/or order.
     For template-based tasks, updates the template's weekdays.
+    
+    Returns the task at target_date, or {"ok": True} if task was removed
+    from source but target already had an instance (edge case).
     """
     logger.info(f"Moving task {task_id} to date={target_date}, order={order}")
-    task = task_service.move_task_to_date(session, task_id, target_date, order)
-    if not task:
-        logger.warning(f"Task {task_id} not found for move")
+    
+    # Check if task exists before move
+    from app.models import Task
+    original_task = session.get(Task, task_id)
+    if not original_task:
+        logger.warning(f"Task {task_id} not found")
         raise HTTPException(status_code=404, detail="Task not found")
-    logger.info(f"Task moved successfully: id={task.id}, date={task.scheduled_date}")
-    return task
+    
+    result = task_service.move_task_to_date(session, task_id, target_date, order)
+    
+    if result:
+        logger.info(f"Task moved successfully: id={result.id}, date={result.scheduled_date}")
+        return result
+    else:
+        # Task was successfully processed (e.g., deleted from source when moving to existing day)
+        # Try to find the task on target date
+        target_tasks = task_service.get_tasks_for_date(session, target_date)
+        for t in target_tasks:
+            if original_task.template_id and t.template_id == original_task.template_id:
+                logger.info(f"Returning existing task on target: id={t.id}")
+                return t
+        
+        # Edge case: source was deleted, target might not have task yet (different week)
+        logger.info(f"Move completed - source task deleted")
+        return {"ok": True, "message": "Task removed from source date"}
 
 
 @router.post("/snapshot/{target_date}")

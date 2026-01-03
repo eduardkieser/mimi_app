@@ -266,7 +266,37 @@ def move_task_to_date(session: Session, task_id: int, target_date: date, new_ord
             if template.weekdays:
                 current_days = {int(d) for d in template.weekdays.split(",") if d}
             
-            # Remove source day, add target day
+            # Check if target day already exists in template (edge case: moving to existing day)
+            if target_weekday in current_days and source_weekday != target_weekday:
+                # Target day already has this task - just remove from source day
+                logger.info(f"Target weekday {target_weekday} already in template, just removing source {source_weekday}")
+                current_days.discard(source_weekday)
+                
+                if current_days:
+                    template.weekdays = ",".join(str(d) for d in sorted(current_days))
+                else:
+                    template.is_active = False
+                    
+                template.updated_at = datetime.utcnow()
+                session.add(template)
+                session.delete(task)
+                session.commit()
+                
+                # Generate/get the task on target date
+                target_tasks = generate_tasks_for_date(session, target_date)
+                for t in target_tasks:
+                    if t.template_id == template.id:
+                        logger.info(f"Returning existing task on target date: id={t.id}")
+                        return t
+                
+                # If we still can't find it, the target date might be outside the current week
+                # Just return a success indicator
+                logger.info(f"Target task for template {template.id} on {target_date} - source deleted successfully")
+                # Create a dummy response - task was successfully moved (source deleted)
+                # Return None and let the caller handle it
+                return None
+            
+            # Normal case: remove source day, add target day
             current_days.discard(source_weekday)
             current_days.add(target_weekday)
             

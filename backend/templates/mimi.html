@@ -175,9 +175,36 @@
     [data-theme="solid"] .task-card:not(.completed) .info-btn.active {
       background: rgba(255, 255, 255, 0.3);
     }
+    
+    /* Swipe transition animation */
+    .task-list {
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .task-list.swipe-left {
+      transform: translateX(-30px);
+      opacity: 0.5;
+    }
+    .task-list.swipe-right {
+      transform: translateX(30px);
+      opacity: 0.5;
+    }
+    
+    /* Swipe hint for mobile */
+    .swipe-hint {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 24px;
+      opacity: 0.6;
+    }
+    @media (min-width: 768px) {
+      .swipe-hint {
+        display: none;
+      }
+    }
   </style>
 </head>
-<body x-data="taskApp()" @scroll.window="checkRefresh">
+<body x-data="taskApp()" @scroll.window="checkRefresh" @touchstart="onTouchStart($event)" @touchend="onTouchEnd($event)">
   <!-- Theme picker -->
   <div class="theme-picker">
     <div class="theme-option" data-theme="dark" :class="{ active: theme === 'dark' }" @click="setTheme('dark')" title="Dark"></div>
@@ -259,6 +286,11 @@
         <p x-text="isToday ? 'No tasks for today' : 'No tasks for this day'"></p>
       </div>
     </div>
+    
+    <!-- Swipe hint for mobile users -->
+    <div class="swipe-hint" x-show="tasks.length > 0">
+      Swipe left/right to change days
+    </div>
   </div>
 
   <script>
@@ -289,6 +321,7 @@
         },
         
         prevDay() {
+          this.animateSwipe('right');
           const newDate = new Date(this.displayDate);
           newDate.setDate(newDate.getDate() - 1);
           this.displayDate = newDate;
@@ -297,10 +330,20 @@
         
         nextDay() {
           if (this.isToday) return; // Can't go beyond today
+          this.animateSwipe('left');
           const newDate = new Date(this.displayDate);
           newDate.setDate(newDate.getDate() + 1);
           this.displayDate = newDate;
           this.loadTasks();
+        },
+        
+        animateSwipe(direction) {
+          const taskList = document.getElementById('task-list');
+          if (!taskList) return;
+          taskList.classList.add('swipe-' + direction);
+          setTimeout(() => {
+            taskList.classList.remove('swipe-' + direction);
+          }, 300);
         },
         
         setTheme(newTheme) {
@@ -310,9 +353,41 @@
         },
         
         refreshCooldown: false,
+        touchStartX: 0,
+        touchStartY: 0,
         
         async init() {
           await this.loadTasks();
+        },
+        
+        onTouchStart(e) {
+          this.touchStartX = e.touches[0].clientX;
+          this.touchStartY = e.touches[0].clientY;
+        },
+        
+        onTouchEnd(e) {
+          if (!this.touchStartX) return;
+          
+          const touchEndX = e.changedTouches[0].clientX;
+          const touchEndY = e.changedTouches[0].clientY;
+          
+          const deltaX = touchEndX - this.touchStartX;
+          const deltaY = touchEndY - this.touchStartY;
+          
+          // Only trigger if horizontal swipe is dominant and significant
+          const minSwipeDistance = 80;
+          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+            if (deltaX > 0) {
+              // Swipe right -> go to previous day
+              this.prevDay();
+            } else {
+              // Swipe left -> go to next day (if not today)
+              this.nextDay();
+            }
+          }
+          
+          this.touchStartX = 0;
+          this.touchStartY = 0;
         },
         
         checkRefresh() {

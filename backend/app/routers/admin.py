@@ -102,12 +102,14 @@ def create_task(task_data: TaskCreate, session: Session = Depends(get_session)):
 
 @router.delete("/tasks/{task_id}")
 def delete_task(task_id: int, session: Session = Depends(get_session)):
-    """Delete a task."""
-    task = task_service.get_task(session, task_id)
-    if not task:
+    """
+    Delete a task. 
+    For template-based weekly tasks, removes that day from the template's weekdays.
+    For template-based daily tasks, deactivates the template entirely.
+    """
+    result = task_service.delete_task_with_template_update(session, task_id)
+    if not result:
         raise HTTPException(status_code=404, detail="Task not found")
-    session.delete(task)
-    session.commit()
     return {"ok": True}
 
 

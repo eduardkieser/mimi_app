@@ -1070,7 +1070,6 @@
         },
 
         async deleteTask(taskId) {
-          if (!confirm('Delete this task?')) return;
           try {
             await fetch(`/api/admin/tasks/${taskId}`, { method: 'DELETE' });
             await this.loadAllTasks();
@@ -1205,7 +1204,16 @@
             
             fetch(`/api/admin/tasks/${task.id}/move?target_date=${targetDate}&order=${newOrder}`, {
               method: 'POST'
-            }).catch(err => console.error('Move failed:', err));
+            }).then(response => {
+              if (!response.ok) {
+                console.error('Move failed with status:', response.status);
+                // Reload to get correct state
+                this.loadAllTasks();
+              }
+            }).catch(err => {
+              console.error('Move failed:', err);
+              this.loadAllTasks();
+            });
           }
         }
       };

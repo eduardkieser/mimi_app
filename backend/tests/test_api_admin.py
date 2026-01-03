@@ -189,6 +189,101 @@ class TestSnapshot:
         assert data["snapshot_count"] == 1
 
 
+class TestDeleteTemplateTasks:
+    """Tests for deleting template-based tasks."""
+    
+    def test_delete_template_task_prevents_regeneration(self, client, sample_template):
+        """Deleting a template-based task should prevent it from regenerating."""
+        # Generate task for Monday (2025-12-29)
+        gen_response = client.post("/api/admin/generate/2025-12-29")
+        assert gen_response.status_code == 200
+        tasks = gen_response.json()
+        assert len(tasks) == 1
+        task_id = tasks[0]["id"]
+        
+        # Delete the task
+        del_response = client.delete(f"/api/admin/tasks/{task_id}")
+        assert del_response.status_code == 200
+        
+        # Try to get tasks for that date again - should NOT regenerate
+        get_response = client.get("/api/tasks/date/2025-12-29")
+        tasks_after = get_response.json()
+        
+        # The task should NOT have been regenerated
+        assert len(tasks_after) == 0, "Template-based task was regenerated after deletion!"
+    
+    def test_delete_weekly_task_removes_day_from_template(self, client, sample_template):
+        """Deleting a weekly task should remove that day from template's weekdays."""
+        # Generate task for Monday (weekday 0)
+        gen_response = client.post("/api/admin/generate/2025-12-29")
+        assert gen_response.status_code == 200
+        tasks = gen_response.json()
+        task_id = tasks[0]["id"]
+        
+        # Delete the task
+        del_response = client.delete(f"/api/admin/tasks/{task_id}")
+        assert del_response.status_code == 200
+        
+        # Check template - Monday should be removed from weekdays
+        template_response = client.get(f"/api/admin/templates/{sample_template.id}")
+        template = template_response.json()
+        
+        # Original weekdays: "0,2,4" (Mon, Wed, Fri)
+        # After delete: should be "2,4" (Wed, Fri)
+        assert "0" not in template["weekdays"], "Monday was not removed from template weekdays!"
+
+
+class TestMoveTemplateTasks:
+    """Tests for moving template-based tasks."""
+    
+    def test_move_weekly_task_updates_template_weekdays(self, client, sample_template):
+        """Moving a weekly task should update the template's weekdays and persist."""
+        # Generate task for Monday (2025-12-29, weekday 0)
+        gen_response = client.post("/api/admin/generate/2025-12-29")
+        assert gen_response.status_code == 200
+        tasks = gen_response.json()
+        task_id = tasks[0]["id"]
+        
+        # Move to Thursday (2026-01-01, weekday 3)
+        move_response = client.post(
+            f"/api/admin/tasks/{task_id}/move?target_date=2026-01-01&order=0"
+        )
+        assert move_response.status_code == 200
+        
+        # Check template weekdays - should now include Thursday, not Monday
+        template_response = client.get(f"/api/admin/templates/{sample_template.id}")
+        template = template_response.json()
+        
+        # Original: "0,2,4" (Mon, Wed, Fri)
+        # After move: should be "2,3,4" (Wed, Thu, Fri)
+        assert "3" in template["weekdays"], "Thursday was not added to template weekdays!"
+        assert "0" not in template["weekdays"], "Monday was not removed from template weekdays!"
+    
+    def test_move_weekly_task_does_not_reappear_on_original_date(self, client, sample_template):
+        """After moving a weekly task, it should not reappear on the original date."""
+        # Generate task for Monday (2025-12-29)
+        gen_response = client.post("/api/admin/generate/2025-12-29")
+        assert gen_response.status_code == 200
+        tasks = gen_response.json()
+        task_id = tasks[0]["id"]
+        
+        # Move to Tuesday (2025-12-30, weekday 1)
+        move_response = client.post(
+            f"/api/admin/tasks/{task_id}/move?target_date=2025-12-30&order=0"
+        )
+        assert move_response.status_code == 200
+        
+        # Get tasks for original date (Monday) - should be empty
+        mon_response = client.get("/api/tasks/date/2025-12-29")
+        mon_tasks = mon_response.json()
+        assert len(mon_tasks) == 0, "Task reappeared on original date after move!"
+        
+        # Get tasks for new date (Tuesday) - should have the task
+        tue_response = client.get("/api/tasks/date/2025-12-30")
+        tue_tasks = tue_response.json()
+        assert len(tue_tasks) == 1, "Task was not on the target date!"
+
+
 class TestPageEndpoints:
     """Tests for HTML page endpoints."""
     

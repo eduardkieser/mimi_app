@@ -324,6 +324,49 @@ def delete_task_or_template(session: Session, task_id: int, delete_all_occurrenc
     return True
 
 
+def delete_task_with_template_update(session: Session, task_id: int) -> bool:
+    """
+    Delete a task and update the template to prevent regeneration.
+    - For weekly templates: removes the task's weekday from template weekdays
+    - For daily templates: deactivates the template
+    - For one-time/monthly or non-template tasks: just deletes the task
+    """
+    task = session.get(Task, task_id)
+    if not task:
+        return False
+    
+    if task.template_id:
+        template = session.get(TaskTemplate, task.template_id)
+        if template:
+            if template.repeat_type == RepeatType.WEEKLY:
+                # Remove this weekday from template
+                task_weekday = task.scheduled_date.weekday()
+                if template.weekdays:
+                    current_days = {int(d) for d in template.weekdays.split(",") if d}
+                    current_days.discard(task_weekday)
+                    
+                    if current_days:
+                        template.weekdays = ",".join(str(d) for d in sorted(current_days))
+                    else:
+                        # No days left, deactivate template
+                        template.is_active = False
+                    
+                    template.updated_at = datetime.utcnow()
+                    session.add(template)
+            
+            elif template.repeat_type == RepeatType.DAILY:
+                # Deactivate the template entirely
+                template.is_active = False
+                template.updated_at = datetime.utcnow()
+                session.add(template)
+            
+            # For monthly or none, just delete the task (template stays)
+    
+    session.delete(task)
+    session.commit()
+    return True
+
+
 # ============ End of Day Snapshot ============
 
 def create_daily_snapshot(session: Session, target_date: date) -> list[Task]:

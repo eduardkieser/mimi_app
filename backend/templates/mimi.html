@@ -123,6 +123,58 @@
       color: var(--color-completed);
       margin-top: 4px;
     }
+    
+    /* Info icon for task notes */
+    .info-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: none;
+      background: var(--bg-hover);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .info-btn:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+    .info-btn.active {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+    
+    /* Task description panel */
+    .task-description {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--bg-hover);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      border-left: 3px solid var(--accent);
+    }
+    
+    /* Solid theme adjustments for description */
+    [data-theme="solid"] .task-card:not(.completed) .task-description {
+      background: rgba(0, 0, 0, 0.15);
+      color: inherit;
+      opacity: 0.9;
+    }
+    [data-theme="solid"] .task-card:not(.completed) .info-btn {
+      background: rgba(0, 0, 0, 0.2);
+      color: inherit;
+    }
+    [data-theme="solid"] .task-card:not(.completed) .info-btn:hover,
+    [data-theme="solid"] .task-card:not(.completed) .info-btn.active {
+      background: rgba(255, 255, 255, 0.3);
+    }
   </style>
 </head>
 <body x-data="taskApp()" @scroll.window="checkRefresh">
@@ -162,6 +214,7 @@
           }"
           :style="`min-height: ${Math.max(60, task.expected_minutes * 1.5)}px`"
           @click="toggleTask(task)"
+          x-data="{ showNotes: false }"
         >
           <div class="task-content">
             <div class="task-checkbox">
@@ -172,6 +225,14 @@
             <div class="task-info">
               <div class="task-title" x-text="task.title"></div>
             </div>
+            <!-- Info button for tasks with description -->
+            <button 
+              class="info-btn"
+              :class="{ active: showNotes }"
+              x-show="task.description"
+              @click.stop="showNotes = !showNotes"
+              title="View notes"
+            >ⓘ</button>
             <span 
               class="task-badge done"
               x-show="task.status === 'completed'"
@@ -182,6 +243,14 @@
               title="Recurring task"
             >↻</span>
           </div>
+          <!-- Description panel -->
+          <div 
+            class="task-description"
+            x-show="showNotes && task.description"
+            x-transition
+            x-text="task.description"
+            @click.stop
+          ></div>
         </div>
       </template>
 

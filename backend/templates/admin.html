@@ -966,15 +966,37 @@
 
         openEditModal(task) {
           this.editingTask = task;
+          
+          // Pre-populate repeat settings from task's repeat_info
+          let repeatDaily = false;
+          let repeatWeekly = false;
+          let repeatMonthly = false;
+          let weeklyDays = [];
+          
+          if (task.repeat_info) {
+            if (task.repeat_info.type === 'daily') {
+              repeatDaily = true;
+            } else if (task.repeat_info.type === 'weekly') {
+              repeatWeekly = true;
+              // Convert day names to indices
+              const dayMap = { 'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4 };
+              weeklyDays = (task.repeat_info.days || [])
+                .map(d => dayMap[d])
+                .filter(d => d !== undefined);
+            } else if (task.repeat_info.type === 'monthly') {
+              repeatMonthly = true;
+            }
+          }
+          
           this.form = {
             title: task.title,
             description: task.description || '',
             priority: task.priority,
             expected_minutes: task.expected_minutes || 30,
-            repeat_daily: false,
-            repeat_weekly: false,
-            weekly_days: [],
-            repeat_monthly: false
+            repeat_daily: repeatDaily,
+            repeat_weekly: repeatWeekly,
+            weekly_days: weeklyDays,
+            repeat_monthly: repeatMonthly
           };
           this.showModal = true;
         },

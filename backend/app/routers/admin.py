@@ -5,6 +5,7 @@ Full CRUD on task templates, manual task generation.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from datetime import date
+import logging
 
 from app.database import get_session
 from app.models import (
@@ -13,6 +14,7 @@ from app.models import (
 )
 from app.services import task_service
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
@@ -130,9 +132,12 @@ def move_task(task_id: int, target_date: date, order: int, session: Session = De
     Move a task to a different date and/or order.
     For template-based tasks, updates the template's weekdays.
     """
+    logger.info(f"Moving task {task_id} to date={target_date}, order={order}")
     task = task_service.move_task_to_date(session, task_id, target_date, order)
     if not task:
+        logger.warning(f"Task {task_id} not found for move")
         raise HTTPException(status_code=404, detail="Task not found")
+    logger.info(f"Task moved successfully: id={task.id}, date={task.scheduled_date}")
     return task
 
 

@@ -1,9 +1,12 @@
 from sqlmodel import Session, select
 from datetime import date, datetime
+import logging
 from app.models import (
     Task, TaskTemplate, TaskStatus, TaskPriority, RepeatType,
     TaskTemplateCreate, TaskTemplateUpdate, TaskUpdate, RepeatInfo
 )
+
+logger = logging.getLogger(__name__)
 
 # Day name mapping
 DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -244,10 +247,13 @@ def move_task_to_date(session: Session, task_id: int, target_date: date, new_ord
     Move a task to a different date. 
     For template-based tasks, update the template's weekdays.
     """
+    logger.info(f"move_task_to_date: task_id={task_id}, target_date={target_date}, new_order={new_order}")
     task = session.get(Task, task_id)
     if not task:
+        logger.warning(f"Task {task_id} not found")
         return None
     
+    logger.info(f"Found task: id={task.id}, title={task.title}, template_id={task.template_id}, current_date={task.scheduled_date}")
     source_weekday = task.scheduled_date.weekday()
     target_weekday = target_date.weekday()
     

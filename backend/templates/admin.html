@@ -1216,21 +1216,24 @@
             this.tasks[targetDate] = [...targetTasks];
             
             // Sync with backend in background
-            if (targetTasks.length > 1) {
-              fetch('/api/admin/tasks/reorder', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(targetTasks.map(t => ({ id: t.id, order: t.order })))
-              }).catch(err => console.error('Reorder failed:', err));
-            }
+            console.log(`Moving task ${task.id} from ${fromDate} to ${targetDate}, order=${newOrder}`);
             
             fetch(`/api/admin/tasks/${task.id}/move?target_date=${targetDate}&order=${newOrder}`, {
               method: 'POST'
-            }).then(response => {
+            }).then(async response => {
               if (!response.ok) {
-                console.error('Move failed with status:', response.status);
+                const errText = await response.text();
+                console.error('Move failed:', response.status, errText);
                 // Reload to get correct state
                 this.loadAllTasks();
+              } else {
+                const data = await response.json();
+                console.log('Move succeeded, response:', data);
+                // Update the task in local state with response data
+                const idx = this.tasks[targetDate]?.findIndex(t => t.id === task.id);
+                if (idx !== -1 && data.id) {
+                  this.tasks[targetDate][idx] = data;
+                }
               }
             }).catch(err => {
               console.error('Move failed:', err);

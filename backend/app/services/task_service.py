@@ -277,28 +277,62 @@ def move_task_to_date(session: Session, task_id: int, target_date: date, new_ord
             session.add(template)
             
             # Delete the old task instance (a new one will be generated for the new day)
+            logger.info(f"Deleting old task {task.id} and generating new one for {target_date}")
             session.delete(task)
             session.commit()
             
             # Generate task for the new date
             tasks = generate_tasks_for_date(session, target_date)
+            logger.info(f"Generated {len(tasks)} tasks for {target_date}: {[(t.id, t.title, t.template_id) for t in tasks]}")
+            
             # Return the newly generated task
             for t in tasks:
                 if t.template_id == template.id:
+                    logger.info(f"Returning newly generated task: id={t.id}, date={t.scheduled_date}")
                     return t
+            
+            logger.warning(f"Could not find generated task for template {template.id} on {target_date}")
             return None
         
         elif template and template.repeat_type == RepeatType.DAILY:
-            # Daily tasks appear every weekday - can't really "move" them
-            # Just update the order
-            template.order = new_order
-            template.updated_at = datetime.utcnow()
-            session.add(template)
-            task.order = new_order
-            session.add(task)
-            session.commit()
-            session.refresh(task)
-            return task
+            if source_weekday == target_weekday:
+                # Same day, just reorder
+                template.order = new_order
+                template.updated_at = datetime.utcnow()
+                session.add(template)
+                task.order = new_order
+                session.add(task)
+                session.commit()
+                session.refresh(task)
+                return task
+            else:
+                # Moving to different day - convert daily to weekly excluding source day
+                logger.info(f"Converting daily template {template.id} to weekly, moving from weekday {source_weekday} to {target_weekday}")
+                remaining_days = {d for d in range(5) if d != source_weekday}
+                remaining_days.add(target_weekday)  # Add target day
+                
+                template.repeat_type = RepeatType.WEEKLY
+                template.weekdays = ",".join(str(d) for d in sorted(remaining_days))
+                template.order = new_order
+                template.updated_at = datetime.utcnow()
+                session.add(template)
+                
+                # Delete old task, generate new one
+                logger.info(f"Deleting old task {task.id} and generating new one for {target_date}")
+                session.delete(task)
+                session.commit()
+                
+                # Generate task for the new date
+                tasks = generate_tasks_for_date(session, target_date)
+                logger.info(f"Generated {len(tasks)} tasks for {target_date}")
+                
+                for t in tasks:
+                    if t.template_id == template.id:
+                        logger.info(f"Returning newly generated task: id={t.id}, date={t.scheduled_date}")
+                        return t
+                
+                logger.warning(f"Could not find generated task for template {template.id} on {target_date}")
+                return None
     
     # Non-template task or monthly: just update the task directly
     task.scheduled_date = target_date

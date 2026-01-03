@@ -234,12 +234,12 @@
       transition: all 0.2s ease;
     }
 
-    .admin-task-card.required {
-      border-left-color: var(--color-required);
+    .admin-task-card.recurring {
+      border-left-color: var(--accent);
     }
 
-    .admin-task-card.optional {
-      border-left-color: var(--color-optional);
+    .admin-task-card.one-time {
+      border-left-color: var(--text-muted);
     }
 
     .admin-task-card:hover {
@@ -292,14 +292,6 @@
       color: var(--bg-primary);
       font-weight: 600;
       white-space: nowrap;
-    }
-
-    /* All repeat types use subtle styling */
-    .repeat-badge.daily,
-    .repeat-badge.weekly,
-    .repeat-badge.monthly {
-      background: var(--bg-hover);
-      color: var(--text-muted);
     }
 
     .admin-task-actions {
@@ -434,28 +426,6 @@
     .form-row textarea {
       resize: vertical;
       min-height: 60px;
-    }
-
-    /* Priority dropdown with colors */
-    .priority-select {
-      width: 100%;
-      padding: 12px;
-      background: var(--bg-primary);
-      border: 1px solid var(--text-muted);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary);
-      font-size: 1rem;
-      cursor: pointer;
-    }
-
-    .priority-select.optional {
-      border-color: var(--color-optional);
-      color: var(--color-optional);
-    }
-
-    .priority-select.required {
-      border-color: var(--color-required);
-      color: var(--color-required);
     }
 
     /* Time stepper */
@@ -704,7 +674,11 @@
                 <div>
                   <div
                     class="admin-task-card"
-                    :class="[task.priority, { 'dragging': draggedTask?.id === task.id }]"
+                    :class="{
+                      'recurring': task.repeat_info && (task.repeat_info.type === 'daily' || task.repeat_info.type === 'weekly'),
+                      'one-time': !task.repeat_info || task.repeat_info.type === 'none' || task.repeat_info.type === 'monthly',
+                      'dragging': draggedTask?.id === task.id
+                    }"
                     :style="`min-height: ${Math.max(40, task.expected_minutes)}px`"
                     draggable="true"
                     :data-task-id="task.id"
@@ -718,10 +692,9 @@
                       <span class="admin-task-title" x-text="task.title"></span>
                       <span 
                         class="repeat-badge"
-                        :class="task.repeat_info?.type"
-                        x-show="task.repeat_info"
-                        x-text="getRepeatLabel(task)"
-                      ></span>
+                        x-show="task.repeat_info && (task.repeat_info.type === 'daily' || task.repeat_info.type === 'weekly')"
+                        title="Recurring task"
+                      >↻</span>
                       <div class="admin-task-actions">
                         <button class="admin-task-btn edit" @click.stop="openEditModal(task)" title="Edit">✎</button>
                         <button class="admin-task-btn delete" @click.stop="deleteTask(task.id)" title="Delete">×</button>
@@ -763,17 +736,6 @@
             required
             autofocus
           >
-        </div>
-
-        <div class="form-row">
-          <select 
-            class="priority-select"
-            :class="form.priority"
-            x-model="form.priority"
-          >
-            <option value="optional">🟡 Optional</option>
-            <option value="required">🔴 Required</option>
-          </select>
         </div>
 
         <div class="form-row">
@@ -935,13 +897,6 @@
           const hrs = Math.floor(total / 60);
           const mins = total % 60;
           return hrs > 0 ? `${hrs}h ${mins}m total` : `${mins}m total`;
-        },
-
-        getRepeatLabel(task) {
-          // Simple repeat icon - no need for day details
-          if (!task.repeat_info) return '';
-          return '↻';
-          return '';
         },
 
         scrollToDay(idx) {

@@ -154,8 +154,8 @@
         <div 
           class="task-card"
           :class="{
-            'required': task.priority === 'required' && task.status !== 'completed',
-            'optional': task.priority === 'optional' && task.status !== 'completed',
+            'recurring': task.repeat_info && (task.repeat_info.type === 'daily' || task.repeat_info.type === 'weekly'),
+            'one-time': !task.repeat_info || task.repeat_info.type === 'none' || task.repeat_info.type === 'monthly',
             'completed': task.status === 'completed',
             'just-completed': task.justCompleted,
             'readonly': !isToday
@@ -173,14 +173,14 @@
               <div class="task-title" x-text="task.title"></div>
             </div>
             <span 
-              class="task-badge"
-              :class="{
-                'required': task.priority === 'required' && task.status !== 'completed',
-                'done': task.status === 'completed'
-              }"
-              x-show="task.status === 'completed' || task.priority === 'required'"
-              x-text="task.status === 'completed' ? 'Done!' : 'Required'"
-            ></span>
+              class="task-badge done"
+              x-show="task.status === 'completed'"
+            >Done!</span>
+            <span 
+              class="repeat-indicator"
+              x-show="task.repeat_info && (task.repeat_info.type === 'daily' || task.repeat_info.type === 'weekly') && task.status !== 'completed'"
+              title="Recurring task"
+            >↻</span>
           </div>
         </div>
       </template>

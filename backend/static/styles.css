@@ -214,27 +214,34 @@ body {
   transition: all 0.3s ease;
 }
 
-/* Priority variants */
-.task-card.required::before {
-  background: var(--color-required);
+/* Task type variants - recurring vs one-time */
+.task-card.recurring::before {
+  background: var(--accent);
 }
 
-.task-card.optional::before {
-  background: var(--color-optional);
+.task-card.one-time::before {
+  background: var(--text-muted);
 }
 
 .task-card.completed::before {
   background: var(--color-completed);
 }
 
-.task-card.required:not(.completed):hover {
-  border-color: var(--color-required);
-  box-shadow: 0 0 20px var(--color-required-glow);
+.task-card.recurring:not(.completed):hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(122, 162, 247, 0.3);
 }
 
-.task-card.optional:not(.completed):hover {
-  border-color: var(--color-optional);
-  box-shadow: 0 0 20px var(--color-optional-glow);
+.task-card.one-time:not(.completed):hover {
+  border-color: var(--text-muted);
+  box-shadow: 0 0 15px rgba(100, 100, 100, 0.2);
+}
+
+/* Repeat indicator for recurring tasks */
+.repeat-indicator {
+  font-size: 1rem;
+  color: var(--accent);
+  opacity: 0.7;
 }
 
 .task-card.completed {
@@ -256,14 +263,15 @@ body {
   display: none;
 }
 
-[data-theme="solid"] .task-card.required:not(.completed) {
-  background: var(--color-required);
+[data-theme="solid"] .task-card.recurring:not(.completed) {
+  background: var(--accent);
   color: white;
 }
 
-[data-theme="solid"] .task-card.optional:not(.completed) {
-  background: var(--color-optional);
-  color: #1a1a24;
+[data-theme="solid"] .task-card.one-time:not(.completed) {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 2px solid var(--text-muted);
 }
 
 [data-theme="solid"] .task-card.completed {
@@ -285,8 +293,8 @@ body {
   border-color: rgba(255, 255, 255, 0.5);
 }
 
-[data-theme="solid"] .task-card.optional .task-checkbox {
-  border-color: rgba(0, 0, 0, 0.3);
+[data-theme="solid"] .task-card.one-time .task-checkbox {
+  border-color: var(--text-muted);
 }
 
 [data-theme="solid"] .task-card.completed .task-checkbox {
@@ -313,12 +321,12 @@ body {
   transition: all 0.3s ease;
 }
 
-.task-card.required .task-checkbox {
-  border-color: var(--color-required);
+.task-card.recurring .task-checkbox {
+  border-color: var(--accent);
 }
 
-.task-card.optional .task-checkbox {
-  border-color: var(--color-optional);
+.task-card.one-time .task-checkbox {
+  border-color: var(--text-muted);
 }
 
 .task-card.completed .task-checkbox {
@@ -367,13 +375,14 @@ body {
 [data-theme="sunset"] .task-card::before {
   display: none;
 }
-[data-theme="sunset"] .task-card.required:not(.completed) {
-  background: var(--color-required);
+[data-theme="sunset"] .task-card.recurring:not(.completed) {
+  background: var(--accent);
   color: white;
 }
-[data-theme="sunset"] .task-card.optional:not(.completed) {
-  background: var(--color-optional);
-  color: #2d2a32;
+[data-theme="sunset"] .task-card.one-time:not(.completed) {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 2px solid var(--text-muted);
 }
 [data-theme="sunset"] .task-card.completed {
   background: var(--color-completed);
@@ -386,8 +395,8 @@ body {
 [data-theme="sunset"] .task-card .task-checkbox {
   border-color: rgba(255, 255, 255, 0.6);
 }
-[data-theme="sunset"] .task-card.optional .task-checkbox {
-  border-color: rgba(0, 0, 0, 0.3);
+[data-theme="sunset"] .task-card.one-time .task-checkbox {
+  border-color: var(--text-muted);
 }
 
 /* Ocean theme - glowing borders */
@@ -395,11 +404,12 @@ body {
   background: rgba(17, 34, 64, 0.8);
   backdrop-filter: blur(8px);
 }
-[data-theme="ocean"] .task-card.required:not(.completed) {
-  box-shadow: 0 0 15px var(--color-required-glow), inset 0 0 20px rgba(255, 107, 107, 0.1);
+[data-theme="ocean"] .task-card.recurring:not(.completed) {
+  box-shadow: 0 0 15px rgba(100, 255, 218, 0.3), inset 0 0 20px rgba(100, 255, 218, 0.1);
+  border-color: var(--accent);
 }
-[data-theme="ocean"] .task-card.optional:not(.completed) {
-  box-shadow: 0 0 15px var(--color-optional-glow), inset 0 0 20px rgba(255, 217, 61, 0.1);
+[data-theme="ocean"] .task-card.one-time:not(.completed) {
+  box-shadow: 0 0 10px rgba(100, 100, 150, 0.2);
 }
 [data-theme="ocean"] .task-card.completed {
   box-shadow: 0 0 20px var(--color-completed-glow);
@@ -414,15 +424,15 @@ body {
 [data-theme="neon"] .task-card::before {
   display: none;
 }
-[data-theme="neon"] .task-card.required:not(.completed) {
-  background: linear-gradient(135deg, rgba(255, 42, 109, 0.9), rgba(255, 42, 109, 0.7));
-  box-shadow: 0 0 20px var(--color-required-glow), 0 0 40px rgba(255, 42, 109, 0.2);
-  color: white;
-}
-[data-theme="neon"] .task-card.optional:not(.completed) {
-  background: linear-gradient(135deg, rgba(255, 204, 0, 0.9), rgba(255, 204, 0, 0.7));
-  box-shadow: 0 0 20px var(--color-optional-glow);
+[data-theme="neon"] .task-card.recurring:not(.completed) {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.9), rgba(0, 180, 255, 0.7));
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), 0 0 40px rgba(0, 212, 255, 0.2);
   color: #0d0221;
+}
+[data-theme="neon"] .task-card.one-time:not(.completed) {
+  background: linear-gradient(135deg, rgba(100, 80, 150, 0.6), rgba(80, 60, 120, 0.5));
+  box-shadow: 0 0 10px rgba(100, 80, 150, 0.3);
+  color: var(--text-primary);
 }
 [data-theme="neon"] .task-card.completed {
   background: linear-gradient(135deg, rgba(5, 255, 161, 0.9), rgba(5, 255, 161, 0.7));
@@ -476,16 +486,6 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-.task-badge.required {
-  background: rgba(247, 118, 142, 0.2);
-  color: var(--color-required);
-}
-
-.task-badge.optional {
-  background: rgba(224, 175, 104, 0.2);
-  color: var(--color-optional);
 }
 
 .task-badge.done {
